@@ -100,7 +100,6 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
   })
 
   let conversation: ProviderItem[] = []
-  let history = [...loaded]
   let pending = ''
   let turnController: AbortController | null = null
   // Input may end (EOF, /exit, SIGINT) while lines are still buffered from a
@@ -191,7 +190,6 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     },
     resetConversation: () => {
       conversation = []
-      history = []
       saveHistory(opts.historyFile, [])
     },
     exit: () => {
@@ -203,6 +201,9 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
   }
 
   const sessionApprovals = new Set<string>()
+  // Set when a tool status line has started this turn; onText uses it to
+  // separate the settled status line from the final answer text.
+  let toolSettled = false
 
   // Runs between the pending status line and execution. Returns to the status
   // line (clearing the prompt) on any answer so the elapsed timer can keep
@@ -232,6 +233,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     const key = approvalKey(call)
     const sessionOk = sessionApprovals.has(key)
     writer.startStatus(summaryOf(call, opts.args.verbose))
+    toolSettled = true
     if (config.mode === 'auto' || sessionOk) return true
     writer.pauseStatus()
     const answer = await askApproval()
@@ -283,15 +285,29 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     const prompt = pending
     pending = ''
     turnController = new AbortController()
+    let streamedText = false
+    let lastDeltaNewline = false
+    let separatorWritten = false
+    toolSettled = false
     try {
-      // When streaming, a leading blank line keeps model text off the prompt
-      // line; buffered mode prints the whole reply after the turn instead.
+      // A leading blank line separates the turn from the prompt line; the
+      // status separator and trailing blank below complete the rhythm
+      // `> input / blank / › status / blank / output / blank / prompt`.
       if (!opts.args.noStream) process.stdout.write('\n')
       const result = await runTurn(provider, conversation, prompt, {
         controller: turnController,
         tools: opts.tools,
         registry: opts.registry,
-        onText: (delta) => writer.text(delta),
+        onText: (delta) => {
+          if (opts.args.noStream) return
+          if (toolSettled && !separatorWritten) {
+            process.stdout.write('\n')
+            separatorWritten = true
+          }
+          writer.text(delta)
+          streamedText = true
+          lastDeltaNewline = delta.endsWith('\n')
+        },
         requestApproval,
         onToolResult,
       })
@@ -307,6 +323,12 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       }
     } finally {
       turnController = null
+    }
+    // Exactly one blank line before the next prompt, whether or not the
+    // model's last delta ended on a newline.
+    if (streamedText) {
+      process.stdout.write('\n')
+      if (!lastDeltaNewline) process.stdout.write('\n')
     }
   }
 }

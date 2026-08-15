@@ -17,6 +17,10 @@ export class StreamWriter {
   private readonly options: StreamWriterOptions
   private active: { summary: string; startedAt: number } | null = null
   private timer: NodeJS.Timeout | null = null
+  // Whether the last write ended on a fresh line; startStatus skips its own
+  // leading newline in that case so a status line after `> input`'s blank
+  // line isn't double-spaced.
+  private atLineStart = true
 
   constructor(options: StreamWriterOptions) {
     this.options = options
@@ -25,14 +29,16 @@ export class StreamWriter {
   text(delta: string): void {
     if (this.options.noStream) return
     this.options.write(delta)
+    this.atLineStart = delta.endsWith('\n')
   }
 
   startStatus(summary: string): void {
     if (!this.options.enabled) return
     this.endStatus('')
     this.active = { summary, startedAt: Date.now() }
-    this.options.write('\n')
+    if (!this.atLineStart) this.options.write('\n')
     this.render()
+    this.atLineStart = true
     this.timer = setInterval(() => this.render(), 200)
   }
 
@@ -59,6 +65,7 @@ export class StreamWriter {
     this.options.write('\n')
     if (details) this.options.write(`${details}\n`)
     this.active = null
+    this.atLineStart = true
   }
 
   private render(): void {

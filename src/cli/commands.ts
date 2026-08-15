@@ -47,9 +47,11 @@ export function runSlashCommand(input: string, ctx: SlashContext): boolean {
       return true
     case '/model':
       ctx.print(`model: ${ctx.model}`)
+      ctx.print('')
       return true
     case '/mode':
       ctx.print(`mode: ${ctx.mode}`)
+      ctx.print('')
       return true
     case '/exit':
       ctx.exit()

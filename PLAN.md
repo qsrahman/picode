@@ -218,6 +218,19 @@ conversation.
   `› shell: pnpm test` with an in-place elapsed timer, which settles into one
   permanent scrollback line when done (the running state never pollutes
   scrollback).
+- Output rhythm (one blank line between each block):
+
+  ```
+  Ask anything, /help for commands
+  > run ls -F
+
+  › shell: ls -F ✓ done (0.0s)
+
+  <agent output…>
+
+  Ask anything, /help for commands
+  >
+  ```
 - Approval (Phase 2, before the rule engine): a two-line prompt that pauses the
   REPL —
 
@@ -398,11 +411,38 @@ through the same permission engine.
 
 ---
 
-### Phase 5 — Stretch: persistence, context, parallelism ⚪ not started
+### Phase 5 — Todo tracking, session persistence, context, parallelism ⚪ not started
 
-**Goal:** long-running, ergonomic sessions.
+**Goal:** the agent plans complex work into tracked subtasks and keeps them
+synchronized across tool rounds; long-running sessions survive restarts.
 
-- [ ] Session persistence / `--resume` (distinct from readline history)
+#### Todo tool (task planning & tracking)
+
+- [ ] `tools/todo.ts`: `TodoItem { id, content, status }` (`pending` |
+      `in_progress` | `done`), `TodoStore` (session-scoped; add/update/
+      complete/delete/list; monotonic ids never reused; snapshot rendering)
+- [ ] `createTodoTool({ store })`: single `todo` tool, granular actions —
+      `add`/`update`/`complete`/`delete`/`list`; semantic validation per
+      action in `execute` (schema.ts supports no unions)
+- [ ] Every action returns the full snapshot (`todo: <done>/<total> done` +
+      `[x] #<id> <content>` lines); the loop's `function_call_output`
+      threading keeps the model synchronized — no `agent.ts` changes
+- [ ] Wiring: store created per session in `index.ts`, injected by closure
+      (shell pattern); `/reset` clears it; ~50-item cap
+- [ ] REPL: settle `› todo: N/M done` status line per change; `--verbose`
+      prints the full list
+- [ ] Approval: same `requestApproval` path as every tool; rules can tune it
+- **Tests:** store ops (id reuse, cap); per-action validation; snapshot
+  format; status-line render (`ansis.strip`)
+- **Docs:** update this file + `README.md` (tool list, UX)
+- **Acceptance:** the agent breaks a multi-step prompt into subtasks, updates
+  progress as it works, and the status line stays in sync; the snapshot
+  survives across REPL turns; `/reset` clears it.
+
+#### Existing stretch items
+
+- [ ] Session persistence / `--resume` (distinct from readline history); the
+      todo store rides along
 - [ ] Context trimming: token-budget compaction of client-side history
 - [ ] Parallel tool execution (`Promise.all`) in the agent loop
 - [ ] Persist `always` approvals to config (allowlist)

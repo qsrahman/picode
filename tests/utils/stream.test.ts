@@ -41,6 +41,25 @@ describe('StreamWriter', () => {
     expect(writes.join('').includes('1.0s')).toBe(true)
   })
 
+  it('does not double-space a status line after a fresh line', () => {
+    const { writes, writer } = captured(true)
+    writer.startStatus('shell: echo hi')
+    writer.endStatus('✓ done (0.0s)')
+    expect(writes.join('')).toBe(
+      '\r\x1b[2K› shell: echo hi 0.0s\r\x1b[2K› shell: echo hi ✓ done (0.0s)\n',
+    )
+  })
+
+  it('drops to a fresh line for the status when text ended mid-line', () => {
+    const { writes, writer } = captured(true)
+    writer.text('mid-line text')
+    writer.startStatus('shell: echo hi')
+    writer.endStatus('✓ done (0.0s)')
+    expect(writes.join('')).toBe(
+      'mid-line text\n\r\x1b[2K› shell: echo hi 0.0s\r\x1b[2K› shell: echo hi ✓ done (0.0s)\n',
+    )
+  })
+
   it('freezes the running line while paused and resumes on demand', () => {
     vi.useFakeTimers()
     const { writes, writer } = captured(true)

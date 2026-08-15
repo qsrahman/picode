@@ -41,6 +41,10 @@ timeout (`config.toolTimeout`, default 30s) and capped output. The tool
 returns a text blob starting with `exit <code>` followed by truncated stdout
 and stderr; a timeout reports `exit 124`.
 
+Planned (Phase 5): a `todo` tool that lets the agent break a complex task into
+tracked subtasks (`pending` / `in_progress` / `done`) and keep them in sync
+across tool rounds.
+
 ### Tool approval
 
 Before a tool call runs, the agent loop asks for approval:
@@ -161,7 +165,7 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 | 2 | Streaming + tools + function-calling loop | 🟢 done |
 | 3 | Built-in tools + permission engine | ⚪ not started |
 | 4 | MCP integration | ⚪ not started |
-| 5 | Session persistence, context trimming, parallelism | ⚪ not started |
+| 5 | Todo tracking, session persistence, context trimming, parallelism | ⚪ not started |
 
 ## Development
 
