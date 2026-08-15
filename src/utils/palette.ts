@@ -3,7 +3,6 @@ import { Ansis } from 'ansis'
 export interface Palette {
   prompt: (s: string) => string
   promptMuted: (s: string) => string
-  assistant: (s: string) => string
   tool: (s: string) => string
   error: (s: string) => string
   tip: (s: string) => string
@@ -16,7 +15,6 @@ export function createPalette(color: boolean): Palette {
   return {
     prompt: (s) => a.green(s),
     promptMuted: (s) => a.dim(s),
-    assistant: (s) => s,
     tool: (s) => a.blue(s),
     error: (s) => a.red(s),
     tip: (s) => a.dim(s),

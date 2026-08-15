@@ -4,7 +4,8 @@ import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { ConfigError, resolveConfig } from '../../src/config/config.ts'
+import { resolveConfig } from '../../src/config/config.ts'
+import { ConfigError } from '../../src/errors.ts'
 import { DEFAULT_CONFIG } from '../../src/config/config.ts'
 
 let dir: string

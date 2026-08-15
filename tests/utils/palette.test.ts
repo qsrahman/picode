@@ -21,10 +21,6 @@ describe('createPalette', () => {
     expect(palette.tip('x')).toBe('x')
   })
 
-  it('leaves assistant text unstyled', () => {
-    expect(createPalette(true).assistant('hello')).toBe('hello')
-  })
-
   it('strips cleanly with ansis.strip', () => {
     expect(ansis.strip(createPalette(true).prompt('hi'))).toBe('hi')
   })

@@ -47,15 +47,6 @@ describe('ToolRegistry', () => {
     ])
   })
 
-  it('filters the toolset to the given names', () => {
-    const reg = new ToolRegistry()
-    reg.register(fakeTool('a'))
-    reg.register(fakeTool('b'))
-    const sub = reg.filter(['a'])
-    expect(sub.names()).toEqual(['a'])
-    expect(sub.get('b')).toBeUndefined()
-  })
-
   it('executes a call and returns the tool output', async () => {
     const reg = new ToolRegistry()
     const tool = fakeTool('a', 'hi')

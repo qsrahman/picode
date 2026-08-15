@@ -1,13 +1,7 @@
 import { parseArgs, type ParseArgsOptionsConfig } from 'node:util'
 
 import { modeSchema, modes, type Mode } from '../config/schema.ts'
-
-export class CliError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'CliError'
-  }
-}
+import { CliError, messageOf } from '../errors.ts'
 
 export interface CliOptions {
   model?: string
@@ -54,7 +48,7 @@ export function parseCli(argv: string[]): CliOptions {
   try {
     parsed = parseArgs({ args: argv, options: CLI_OPTIONS, allowPositionals: true })
   } catch (err) {
-    throw new CliError(err instanceof Error ? err.message : String(err))
+    throw new CliError(messageOf(err))
   }
   const values: ParsedValues = parsed.values
   const positionals = parsed.positionals

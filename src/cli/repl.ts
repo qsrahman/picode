@@ -1,19 +1,18 @@
 import * as readline from 'node:readline'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
 
 import type { CliOptions } from './args.ts'
 import type { Config } from '../config/schema.ts'
 import type { Provider, ProviderItem } from '../agent/provider.ts'
-import { runTurn } from '../agent/agent.ts'
+import { MAX_TOOL_ROUNDS, runTurn } from '../agent/agent.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
 import type { ToolCall, ToolDescriptor, ToolResult } from '../tools/types.ts'
 import { decodeExitCode, excerptOf, runCommandName } from '../tools/shell.ts'
 import type { Palette } from '../utils/palette.ts'
 import { StreamWriter } from '../utils/stream.ts'
 import { isSlashCommand, runSlashCommand } from './commands.ts'
-
-export const HISTORY_SIZE = 1000
+import { messageOf } from '../errors.ts'
+import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
+import { approvalKey, summaryOf, applyApprovalAnswer } from './approval.ts'
 
 export interface ReplOptions {
   provider: Provider
@@ -50,42 +49,6 @@ function hasOpenBraces(text: string): boolean {
     else if (ch === '}') depth--
   }
   return depth > 0
-}
-
-function loadHistory(path: string): string[] {
-  try {
-    return readFileSync(path, 'utf8')
-      .split('\n')
-      .filter((line) => line.length > 0)
-      .slice(-HISTORY_SIZE)
-  } catch {
-    return []
-  }
-}
-
-function saveHistory(path: string, entries: string[]): void {
-  const capped = entries.slice(-HISTORY_SIZE)
-  try {
-    mkdirSync(dirname(path), { recursive: true })
-    writeFileSync(path, capped.length > 0 ? `${capped.join('\n')}\n` : '')
-  } catch {
-    // History persistence is best-effort; a read-only home should not break the REPL.
-  }
-}
-
-// Keyed by exact call arguments; approvals are session-only until Phase 5.
-function approvalKey(call: ToolCall): string {
-  return `${call.name}(${JSON.stringify(call.args)})`
-}
-
-function summaryOf(call: ToolCall, verbose: boolean): string {
-  if (call.name === runCommandName && typeof call.args.command === 'string') {
-    const command = call.args.command
-    const max = verbose ? Infinity : 80
-    const shown = command.length > max ? `${command.slice(0, max)}…` : command
-    return `shell: ${shown}`
-  }
-  return `${call.name}(${JSON.stringify(call.args)})`
 }
 
 export async function runRepl(opts: ReplOptions): Promise<void> {
@@ -237,8 +200,8 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     if (config.mode === 'auto' || sessionOk) return true
     writer.pauseStatus()
     const answer = await askApproval()
-    if (answer === 'a') sessionApprovals.add(key)
-    if (answer === 'y' || answer === 'a') {
+    const approved = applyApprovalAnswer(answer, key, sessionApprovals)
+    if (approved) {
       writer.resumeStatus()
       return true
     }
@@ -288,6 +251,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     let streamedText = false
     let lastDeltaNewline = false
     let separatorWritten = false
+    let truncated = false
     toolSettled = false
     try {
       // A leading blank line separates the turn from the prompt line; the
@@ -312,23 +276,27 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
         onToolResult,
       })
       conversation = result.items
+      truncated = result.truncated
       if (opts.args.noStream && result.text) process.stdout.write(`\n${result.text}\n\n`)
     } catch (err) {
       if (turnController.signal.aborted) {
         process.stdout.write('\n(cancelled)\n\n')
       } else {
-        process.stdout.write(
-          `\n${palette.error('Error:')} ${err instanceof Error ? err.message : String(err)}\n\n`,
-        )
+        process.stdout.write(`\n${palette.error('Error:')} ${messageOf(err)}\n\n`)
       }
     } finally {
       turnController = null
     }
     // Exactly one blank line before the next prompt, whether or not the
     // model's last delta ended on a newline.
-    if (streamedText) {
+    if (streamedText && !truncated) {
       process.stdout.write('\n')
       if (!lastDeltaNewline) process.stdout.write('\n')
+    }
+    if (truncated) {
+      process.stdout.write(
+        `\n${palette.error('Error:')} tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n\n`,
+      )
     }
   }
 }

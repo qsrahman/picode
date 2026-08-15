@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 
 import type { Mode } from './schema.ts'
 import { configSchema, type Config } from './schema.ts'
+import { ConfigError, messageOf } from '../errors.ts'
 
 export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
   model: 'gpt-5.6',
@@ -15,13 +16,6 @@ export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
   maxTokens: 8192,
   maxRetries: 3,
   toolTimeout: 30000,
-}
-
-export class ConfigError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'ConfigError'
-  }
 }
 
 export interface ResolveConfigOptions {
@@ -53,9 +47,7 @@ function readConfigFile(path: string, required: boolean): ConfigFile | null {
   try {
     raw = readFileSync(path, 'utf8')
   } catch (err) {
-    throw new ConfigError(
-      `Failed to read config <${path}>: ${err instanceof Error ? err.message : String(err)}`,
-    )
+    throw new ConfigError(`Failed to read config <${path}>: ${messageOf(err)}`)
   }
   let data: unknown
   try {

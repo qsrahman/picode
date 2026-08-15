@@ -2,6 +2,7 @@ import type { z } from 'zod'
 
 import type { Tool, ToolCall, ToolDescriptor, ToolResult } from './types.ts'
 import { zodToJsonSchema } from './schema.ts'
+import { messageOf } from '../errors.ts'
 
 export class ToolRegistry {
   private readonly tools = new Map<string, Tool>()
@@ -32,18 +33,6 @@ export class ToolRegistry {
     }))
   }
 
-  // Toolset filtering: a registry restricted to the named tools, sharing the
-  // same Tool instances. Nothing in Phase 2 consumes it yet; /tools and mode
-  // gating will (Phase 3).
-  filter(names: readonly string[]): ToolRegistry {
-    const sub = new ToolRegistry()
-    for (const name of names) {
-      const tool = this.tools.get(name)
-      if (tool) sub.tools.set(name, tool)
-    }
-    return sub
-  }
-
   // Dispatch one call. Every failure mode — unknown tool, invalid arguments,
   // a thrown tool error — comes back as an output string so the model can
   // react; nothing escapes as an uncaught exception.
@@ -68,7 +57,7 @@ export class ToolRegistry {
       return {
         callId: call.callId,
         name: call.name,
-        output: `${call.name} failed: ${err instanceof Error ? err.message : String(err)}`,
+        output: `${call.name} failed: ${messageOf(err)}`,
       }
     }
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { CliError, parseCli } from '../../src/cli/args.ts'
+import { parseCli } from '../../src/cli/args.ts'
+import { CliError } from '../../src/errors.ts'
 
 describe('parseCli', () => {
   it('returns defaults when given no arguments', () => {

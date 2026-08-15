@@ -2,12 +2,13 @@
 
 import { join } from 'node:path'
 
-import { CliError, parseCli } from './cli/args.ts'
+import { parseCli } from './cli/args.ts'
 import { HELP_TEXT } from './cli/help.ts'
 import { runRepl } from './cli/repl.ts'
-import { ConfigError, resolveConfig } from './config/config.ts'
+import { resolveConfig } from './config/config.ts'
+import { CliError, ConfigError, messageOf } from './errors.ts'
 import { createProvider } from './agent/provider.ts'
-import { runTurn } from './agent/agent.ts'
+import { MAX_TOOL_ROUNDS, runTurn } from './agent/agent.ts'
 import { ToolRegistry } from './tools/registry.ts'
 import { createShellTool } from './tools/shell.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
@@ -47,9 +48,10 @@ async function main(): Promise<void> {
 
   const apiKey = process.env[config.apiKeyEnv]
   if (!apiKey) {
+    const palette = createPalette(shouldUseColor(args))
     process.stderr.write(
       `error: no API key found (${config.apiKeyEnv} is not set)\n\n` +
-        `Tip: export ${config.apiKeyEnv}=<your key> to use pcode.\n`,
+        `${palette.tip('Tip:')} export ${config.apiKeyEnv}=<your key> to use pcode.\n`,
     )
     process.exit(1)
   }
@@ -73,6 +75,9 @@ async function main(): Promise<void> {
       requestApproval: async () => config.mode === 'auto',
     })
     if (args.noStream && result.text) process.stdout.write(`${result.text}\n`)
+    if (result.truncated) {
+      process.stderr.write(`pcode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
+    }
     return
   }
 
@@ -88,6 +93,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`fatal: ${err instanceof Error ? err.message : String(err)}\n`)
+  process.stderr.write(`fatal: ${messageOf(err)}\n`)
   process.exit(1)
 })
