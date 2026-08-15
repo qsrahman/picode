@@ -70,6 +70,7 @@ src/
   config/
     schema.ts           zod schemas for config + CLI overrides
     config.ts           resolve & merge defaults ← user ← project ← CLI
+    env.ts              project .env loader (OPENAI_API_KEY / OPENAI_BASE_URL)
   agent/
     provider.ts         Provider interface + OpenAI (Responses) impl
     agent.ts            runTurn(): streaming tool-calling loop (core of the agent)
@@ -120,8 +121,8 @@ runTurn (Phase 2+, streaming):
 ```jsonc
 {
   "model": "gpt-5.6",
-  "baseURL": "https://api.openai.com/v1",
-  "apiKeyEnv": "OPENAI_API_KEY",
+  "baseURL": "https://api.openai.com/v1",  // OPENAI_BASE_URL env overrides
+  "apiKeyEnv": "OPENAI_API_KEY",          // key read from this env var
   "instructions": "…coding agent system prompt…",
   "root": "/path/to/workspace",          // default: process.cwd()
   "additionalDirs": ["../sibling"],
@@ -141,7 +142,11 @@ runTurn (Phase 2+, streaming):
 
 Merge order: `defaults ← ~/.config/pcode/config.json ← ./pcode.json ← CLI
 flags`. Resolution: `--config <path>` → `./pcode.json` →
-`~/.config/pcode/config.json`.
+`~/.config/pcode/config.json`. The environment layers on top: the API key is
+read from `apiKeyEnv` (default `OPENAI_API_KEY`), and `OPENAI_BASE_URL`
+overrides `baseURL`. A `.env` file in the working directory is loaded at
+startup (dotenv semantics: comments, quotes, `export`; existing variables
+win).
 
 ### CLI surface
 

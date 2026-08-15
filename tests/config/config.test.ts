@@ -122,4 +122,32 @@ describe('resolveConfig', () => {
     expect(config.maxTokens).toBe(4096)
     expect(config.model).toBe(DEFAULT_CONFIG.model)
   })
+
+  it('lets OPENAI_BASE_URL from the env override config files', () => {
+    writeFileSync(projectPath, JSON.stringify({ baseURL: 'https://project.example/v1' }))
+    const config = resolveConfig(
+      {},
+      {
+        cwd: dir,
+        userConfigPath: userPath,
+        projectConfigPath: projectPath,
+        env: { OPENAI_BASE_URL: 'https://env.example/v1' },
+      },
+    )
+    expect(config.baseURL).toBe('https://env.example/v1')
+  })
+
+  it('ignores an empty OPENAI_BASE_URL', () => {
+    writeFileSync(projectPath, JSON.stringify({ baseURL: 'https://project.example/v1' }))
+    const config = resolveConfig(
+      {},
+      {
+        cwd: dir,
+        userConfigPath: userPath,
+        projectConfigPath: projectPath,
+        env: { OPENAI_BASE_URL: '' },
+      },
+    )
+    expect(config.baseURL).toBe('https://project.example/v1')
+  })
 })

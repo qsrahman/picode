@@ -3,4 +3,5 @@ node_modules/
 dist/
 coverage/
 .pcode/
+.env
 .DS_Store

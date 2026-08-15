@@ -64,6 +64,7 @@ Config is merged in this order (later wins):
 2. `~/.config/pcode/config.json` (user-level)
 3. `./pcode.json` (project-level, checked in to share with your team)
 4. CLI flags
+5. Environment: `OPENAI_BASE_URL` overrides `baseURL`; the API key is read from `apiKeyEnv` (default `OPENAI_API_KEY`)
 
 ```jsonc
 {
@@ -83,7 +84,20 @@ Config is merged in this order (later wins):
     "read":  { "allow": [],                "ask": [], "deny": ["Read(.env)"] }
   }
 }
+
 ```
+
+### `.env`
+
+`pcode` loads `.env` from the working directory at startup, so you can keep
+credentials out of your shell (see `.env.example`):
+
+```
+OPENAI_API_KEY=sk-...
+# OPENAI_BASE_URL=https://api.openai.com/v1   # optional: override the endpoint
+```
+
+Variables already exported in your shell take precedence over `.env`.
 
 ## Permission model
 

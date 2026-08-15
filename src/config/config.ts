@@ -28,6 +28,7 @@ export interface ResolveConfigOptions {
   cwd?: string
   userConfigPath?: string
   projectConfigPath?: string
+  env?: NodeJS.ProcessEnv
 }
 
 export interface ConfigOverrides {
@@ -73,6 +74,7 @@ function readConfigFile(path: string, required: boolean): ConfigFile | null {
 // file is reported against the file that introduced it.
 export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions = {}): Config {
   const cwd = opts.cwd ?? process.cwd()
+  const env = opts.env ?? process.env
   const userPath = opts.userConfigPath ?? join(homedir(), '.config', 'pcode', 'config.json')
   const projectPath = opts.projectConfigPath ?? join(cwd, 'pcode.json')
 
@@ -99,6 +101,9 @@ export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions 
 
   if (args.model !== undefined) merged.model = args.model
   if (args.mode !== undefined) merged.mode = args.mode
+  // OPENAI_BASE_URL is the standard OpenAI-compatible escape hatch: when set,
+  // it wins over every config layer (the API key already follows apiKeyEnv).
+  if (env.OPENAI_BASE_URL) merged.baseURL = env.OPENAI_BASE_URL
 
   merged.root = resolve(cwd, merged.root ?? cwd)
   merged.additionalDirs = (merged.additionalDirs ?? []).map((dir) => resolve(cwd, dir))
