@@ -377,6 +377,8 @@ one-shot and interactive REPL.
 
 **Goal:** real coding-agent capabilities with the full safety model.
 
+#### Core features
+
 - [ ] `tools/fs.ts`: `read_file` / `write_file` / `list_dir` / `stat`;
       workspace-root confined with traversal guard
 - [ ] `tools/git.ts`: `status` / `diff` / `log` / `show` (read-only)
@@ -392,12 +394,26 @@ one-shot and interactive REPL.
 - [ ] Toolset filtering via policy (denied tools hidden + hard-blocked)
 - [ ] Workspace `additionalDirs` support
 - [ ] CLI: `--mode` wired; plan/auto indicators; `/mode` `/tools`
+
+#### Usability enhancements (high-impact, low-effort)
+
+- [ ] **Rule feedback on denial:** when denying a tool call, show matching rule
+      name + reason (e.g., `Error: denied by rule 'no-shell-rm'`); update
+      `permissions/prompt.ts` to include rule metadata; ~50 LOC
+- [ ] **Tool discovery command:** `/tools` lists available tools with
+      descriptions and current allow/ask/deny status per mode; ~30 LOC
+- [ ] **Semantic exit codes:** distinguish success (0), error (1), permission
+      denied (2), truncated/exhausted (3); update `index.ts` to map turn
+      results to codes; ~10 LOC
+
 - **Tests:** fs round-trip + traversal in tmp dirs;
   git on a temp repo; rule engine (precedence, patterns, compound, wrappers);
-  modes; breakers; prompt decisions; policy integration
-- **Docs:** update as needed
+  modes; breakers; prompt decisions; policy integration; exit code mapping
+- **Docs:** update as needed; add exit code reference to README
 - **Acceptance:** the agent edits files, runs shell, and queries git safely,
-  honoring rules and modes.
+  honoring rules and modes; denied tools show the blocking rule; `/tools`
+  displays available tools with status; exit codes reflect the outcome
+  (success/error/denied/truncated).
 - **Commit** when green.
 
 ---
@@ -407,6 +423,8 @@ one-shot and interactive REPL.
 **Goal:** connect external MCP servers (stdio + streamable HTTP); tools flow
 through the same permission engine.
 
+#### Core features
+
 - [ ] Add `@modelcontextprotocol/sdk` runtime dep
 - [ ] `config/schema.ts`: `mcp.servers[]` (name, command/args/env | url/headers)
 - [ ] `mcp/client.ts`: connect / listTools / callTool over both transports
@@ -414,11 +432,21 @@ through the same permission engine.
       default `ask`
 - [ ] Startup connection + tool registration; one failing server must not kill
       the session
+
+#### Usability enhancements (high-impact, low-effort)
+
+- [ ] **Token usage tracking:** collect token counts from provider (input +
+      output per turn), display cumulative total + estimated cost at end of
+      each turn; update `provider.ts` to surface token data, add to
+      `TurnResult`; update `utils/stream.ts` to display; optional
+      `--budget N` config to warn when approaching threshold; ~60 LOC
+
 - **Tests:** adapter against a mocked Client; namespaced rule matching; config
-  validation
-- **Docs:** update as needed
+  validation; token accumulation and budget warnings
+- **Docs:** update as needed; add token usage and cost estimation to README
 - **Acceptance:** a configured MCP server's tools appear in `/tools`, are
-  callable, and honor permission rules.
+  callable, and honor permission rules; cumulative token count and estimated
+  cost displayed after each turn; optional budget threshold warnings work.
 - **Commit** when green.
 
 ---
@@ -444,12 +472,25 @@ synchronized across tool rounds.
 - [ ] REPL: settle `› todo: N/M done` status line per change; `--verbose`
       prints the full list
 - [ ] Approval: same `requestApproval` path as every tool; rules can tune it
+
+#### Usability enhancements (high-impact, low-effort)
+
+- [ ] **Session tagging & metadata:** support `--session=<name>` flag to
+      organize related work; store session name + created/modified timestamps
+      in history directory naming/metadata; allow filtering history by tag;
+      update `cli/history.ts` to support tagged sessions; ~40 LOC
+- [ ] **Persistent todo state (session-scoped):** todo store survives across
+      REPL sessions with the same `--session` tag; serialize/restore state
+      alongside conversation history; ~30 LOC
+
 - **Tests:** store ops (id reuse, cap); per-action validation; snapshot
-  format; status-line render (`ansis.strip`)
-- **Docs:** update this file + `README.md` (tool list, UX)
+  format; status-line render (`ansis.strip`); session tagging and restore
+- **Docs:** update this file + `README.md` (tool list, UX, session tagging)
 - **Acceptance:** the agent breaks a multi-step prompt into subtasks, updates
   progress as it works, and the status line stays in sync; the snapshot
-  survives across REPL turns; `/reset` clears it.
+  survives across REPL turns; `/reset` clears it; sessions tagged with
+  `--session=<name>` organize related work and persist todos across restarts.
+- **Commit** when green.
 
 ---
 
@@ -473,16 +514,67 @@ tool calls can execute in parallel when safe.
 - [ ] Status lines: one per tool, settle independently
 - [ ] Ordering: respect model-suggested order in output
 
-#### Testing & docs
+#### Usability enhancements (high-impact, low-effort)
+
+- [ ] **Audit trail & session summary:** at end of session, display summary
+      showing all tool calls made, approvals given, and denials encountered;
+      optional export to markdown for review/sharing; ~80 LOC
+- [ ] **Debug mode:** `--debug` flag to show rule evaluation decisions and
+      tool call reasoning in output; update `permissions/policy.ts` to emit
+      trace info; ~100 LOC
 
 - **Tests:** history serialize/restore, trim behavior, parallel execution,
-  allowlist round-trip
-- **Docs:** update this file, `README.md`, and `AGENTS.md`
+  allowlist round-trip, audit trail generation, debug output format
+- **Docs:** update this file, `README.md`, and `AGENTS.md`; add debug mode
+  reference
 - **Acceptance:** long sessions don't grow unbounded; client can resume with
   `/resume` (history + todos + conversation intact); independent tool calls
-  execute in parallel with clean status-line settle order.
+  execute in parallel with clean status-line settle order; `--debug` shows
+  rule decisions and reasoning; session summary displays all tool activity
+   before exit.
 - **Commit:** when all green.
 
+---
+
+### Phase 7 — Polish, automation, and advanced features ⚪ future
+
+**Goal:** deferred enhancements for usability, automation, and extensibility.
+
+#### Deferred high-impact features
+
+- [ ] **Dry-run mode:** `--dry-run` flag to show what tool calls would be made
+      without executing; useful for validation and testing agent decisions;
+      update agent loop to skip execution when flag is set; ~120 LOC
+- [ ] **Session export:** save conversation + todos + metadata to markdown;
+      reproducible snapshots for sharing, documentation, and recovery;
+      write to user-specified file or auto-generate; ~70 LOC
+- [ ] **JSON output mode:** `--json` flag for machine-readable results; emit
+      tool calls, approvals, and final output as structured JSON; useful for
+      CI/CD integration and automation; ~80 LOC
+- [ ] **Multi-session branching:** fork conversation at checkpoints; explore
+      alternatives without losing work; restore point creation and switching;
+      ~200 LOC
+- [ ] **Smart error recovery:** parse common tool failures (file not found,
+      permission denied) and suggest fixes; integrate with LLM to propose
+      corrective actions; ~120 LOC
+- [ ] **Plugin hooks & extensibility:** allow custom validators/filters on
+      tool calls; load plugins from config; enable third-party integrations;
+      ~150 LOC
+
+#### Lower-priority enhancements (consider for later phases)
+
+- **History search:** `/search <keyword>` to find past queries within project
+- **Example flows:** store common patterns (analyze code, write tests, debug)
+- **Interactive help:** context-aware tips per mode/phase
+- **Model benchmarking:** `--bench` mode to compare models on a task
+- **Rate limiting:** max N tool calls per minute, per type
+- **Workspace isolation:** `--workspace` flag to sandbox work
+- **Call budgets:** enforce max tool calls per session
+- **Streaming output:** `--stream-json` for live event stream
+- **Provider auto-detect:** if OpenAI fails, try fallback provider
+- **Tool-specific models:** allow expensive ops to use different models
+- **Response time display:** show latency per turn
+- **Colorized status badge:** show session state at prompt
 
 ---
 
