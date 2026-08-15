@@ -8,7 +8,7 @@ import { runRepl } from './cli/repl.ts'
 import { ConfigError, resolveConfig } from './config/config.ts'
 import { createProvider } from './agent/provider.ts'
 import { runTurn } from './agent/agent.ts'
-import { createPalette, shouldUseColor } from './output/palette.ts'
+import { createPalette, shouldUseColor } from './utils/palette.ts'
 import { VERSION } from './version.ts'
 
 async function main(): Promise<void> {

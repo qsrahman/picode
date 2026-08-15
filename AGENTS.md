@@ -62,7 +62,7 @@ src/
   tools/            Tool interface, zod→JSON schema, registry, fs/shell/git
   permissions/      rules engine, modes, policy, prompt
   mcp/              MCP client + adapter (Phase 4)
-  output/           palette + streaming/status writer
+  utils/            palette + streaming/status writer
 tests/              mirrors src/ 1:1
 ```
 

@@ -88,7 +88,7 @@ src/
     policy.ts           evaluate a call → allow | ask | deny
     prompt.ts           y/n/a prompt with rule preview
   mcp/                  (Phase 4) client.ts + adapter.ts (MCP tool → Tool)
-  output/
+  utils/
     palette.ts          fixed palette, NO_COLOR / --no-color
     stream.ts           live text writer + inline status-line manager
 tests/                  mirrors src/ 1:1 (tests/<module>/<file>.test.ts)
@@ -274,14 +274,14 @@ one-shot and interactive REPL.
 - [x] `agent/provider.ts`: `Provider` interface + OpenAI Responses impl
       (non-streaming `responses.create`)
 - [x] `agent/agent.ts`: `runTurn` text-only; client-side history accumulation
-- [x] `output/palette.ts`: fixed palette + `NO_COLOR`/`--no-color`
+- [x] `utils/palette.ts`: fixed palette + `NO_COLOR`/`--no-color`
 - [x] `cli/commands.ts` + `cli/repl.ts`: readline session — persisted
       per-project history, multi-line continuation, Ctrl+C cancels the turn /
       exits at the prompt, Ctrl+D exits; `/help` `/clear` `/reset` `/model`
       `/mode` (read-only) `/exit`
 - [x] `index.ts` dispatch: `--version` / `--help` / one-shot / REPL
 - **Tests:** `cli/args`, `config/*` (merge order, validation),
-  `agent/agent` with a fake provider (no network), `output/palette`
+  `agent/agent` with a fake provider (no network), `utils/palette`
   (`ansis.strip`), `cli/commands`, `cli/repl` (`needsContinuation`) — 50
   tests passing
 - **Docs:** updated this file + `README.md` (CLI usage); `AGENTS.md`
@@ -310,14 +310,14 @@ one-shot and interactive REPL.
       `function_call` events → execute → `sendFunctionCallOutputs`;
       max-iterations guard; tool errors returned as strings to the model
 - [ ] `agent/provider.ts`: streaming path (`responses.create({ stream: true })`)
-- [ ] `output/stream.ts`: live text writer + tool status lines (one settled
+- [ ] `utils/stream.ts`: live text writer + tool status lines (one settled
       line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
       output hidden by default (model-facing); `--no-stream` buffering;
       `--verbose` full detail
 - **Tests:** `tools/registry`, `tools/schema` (strict shape),
   `tools/shell` (exit codes, timeout, output cap),
   `agent/agent` with a fake stream (multi-step, errors, iteration exhaustion),
-  `output/stream` (`ansis.strip`)
+  `utils/stream` (`ansis.strip`)
 - **Docs:** update as needed
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
   status lines settle to one line per call; the approval prompt pauses until

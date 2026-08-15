@@ -2,7 +2,7 @@ import ansis from 'ansis'
 
 import { describe, expect, it } from 'vitest'
 
-import { createPalette, shouldUseColor } from '../../src/output/palette.ts'
+import { createPalette, shouldUseColor } from '../../src/utils/palette.ts'
 
 describe('createPalette', () => {
   it('styles every method when color is enabled', () => {

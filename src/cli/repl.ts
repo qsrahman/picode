@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import type { Config } from '../config/schema.ts'
 import type { Provider, ProviderMessage } from '../agent/provider.ts'
 import { runTurn } from '../agent/agent.ts'
-import type { Palette } from '../output/palette.ts'
+import type { Palette } from '../utils/palette.ts'
 import { isSlashCommand, runSlashCommand } from './commands.ts'
 
 export const HISTORY_SIZE = 1000
