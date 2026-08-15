@@ -32,11 +32,11 @@ describe('runTurn', () => {
     ])
   })
 
-  it('passes the full history and options to the provider', async () => {
+  it('passes the full history and the AbortController signal to the provider', async () => {
     const provider = fakeProvider('ok')
     const controller = new AbortController()
     const history: ProviderMessage[] = [{ role: 'user', content: 'q1' }]
-    await runTurn(provider, history, 'q2', { signal: controller.signal })
+    await runTurn(provider, history, 'q2', { controller })
     expect(provider.complete).toHaveBeenCalledWith(
       [
         { role: 'user', content: 'q1' },

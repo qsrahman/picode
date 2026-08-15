@@ -168,7 +168,9 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     pending = ''
     turnController = new AbortController()
     try {
-      const next = await runTurn(provider, conversation, prompt, { signal: turnController.signal })
+      const next = await runTurn(provider, conversation, prompt, {
+        controller: turnController,
+      })
       const reply = next[next.length - 1]
       conversation = next
       if (reply?.role === 'assistant') process.stdout.write(`\n${reply.content}\n\n`)
