@@ -1,6 +1,6 @@
 import type { Provider, ProviderItem } from './provider.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
-import type { ToolCall, ToolDescriptor } from '../tools/types.ts'
+import type { ToolCall, ToolDescriptor, ToolResult } from '../tools/types.ts'
 
 export const MAX_TOOL_ROUNDS = 8
 
@@ -12,6 +12,9 @@ export interface RunOptions {
   // hook (or a non-interactive caller that omits it) denies nothing, so the
   // loop's tool execution is a no-op without an explicit registry + hook.
   requestApproval?: (call: ToolCall) => Promise<boolean>
+  // Status-line sink: called once per executed call so the CLI can settle a
+  // running status line with ✓/✗ and the elapsed time.
+  onToolResult?: (call: ToolCall, result: ToolResult, ms: number) => void
   onText?: (delta: string) => void
 }
 
@@ -51,7 +54,10 @@ export async function runTurn(
       if (options.requestApproval && !(await options.requestApproval(call))) {
         output = 'tool call denied by user'
       } else if (options.registry) {
-        output = (await options.registry.execute(call)).output
+        const started = Date.now()
+        const result = await options.registry.execute(call)
+        if (options.onToolResult) options.onToolResult(call, result, Date.now() - started)
+        output = result.output
       } else {
         output = 'error: tool not available'
       }

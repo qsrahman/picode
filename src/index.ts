@@ -8,6 +8,8 @@ import { runRepl } from './cli/repl.ts'
 import { ConfigError, resolveConfig } from './config/config.ts'
 import { createProvider } from './agent/provider.ts'
 import { runTurn } from './agent/agent.ts'
+import { ToolRegistry } from './tools/registry.ts'
+import { createShellTool } from './tools/shell.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
 import { VERSION } from './version.ts'
 
@@ -55,9 +57,22 @@ async function main(): Promise<void> {
   const provider = createProvider(config, apiKey)
   const palette = createPalette(shouldUseColor(args))
 
+  const registry = new ToolRegistry()
+  registry.register(createShellTool({ cwd: config.root, timeout: config.toolTimeout }))
+  const tools = registry.descriptors()
+
   if (args.prompt) {
-    const result = await runTurn(provider, [], args.prompt)
-    if (result.text) process.stdout.write(`${result.text}\n`)
+    // Non-interactive: only --yes (mode auto) approves tool calls; anything
+    // else auto-denies instead of prompting.
+    const result = await runTurn(provider, [], args.prompt, {
+      tools,
+      registry,
+      onText: (delta) => {
+        if (!args.noStream) process.stdout.write(delta)
+      },
+      requestApproval: async () => config.mode === 'auto',
+    })
+    if (args.noStream && result.text) process.stdout.write(`${result.text}\n`)
     return
   }
 
@@ -66,6 +81,9 @@ async function main(): Promise<void> {
     config,
     palette,
     historyFile: join(process.cwd(), '.pcode', 'history'),
+    args,
+    registry,
+    tools,
   })
 }
 

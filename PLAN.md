@@ -302,7 +302,7 @@ one-shot and interactive REPL.
 
 ---
 
-### Phase 2 — Streaming + tools + function-calling loop 🟡 in progress
+### Phase 2 — Streaming + tools + function-calling loop 🟢 done
 
 **Goal:** the agent can call tools; all output streams live.
 
@@ -311,10 +311,11 @@ one-shot and interactive REPL.
 - [x] `tools/schema.ts`: minimal zod → strict JSON-Schema converter
 - [x] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
       execution
-- [ ] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
-      `cwd`=workspace, capped output. Pure execution: confirmation is the
-      agent loop's job (injected `requestApproval` hook), so Phase 3 swaps
-      the prompt for the rule engine without touching the tool.
+- [x] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
+      `cwd`=workspace, capped output (`exit <code>` + truncated stdout/stderr).
+      Pure execution: confirmation is the agent loop's job (injected
+      `requestApproval` hook), so Phase 3 swaps the prompt for the rule engine
+      without touching the tool.
 - [x] `agent/agent.ts`: stream-based tool loop — each round streams via
       `provider.stream`, extracts `function_call` items from `response.output`,
       executes through the registry behind an injected `requestApproval` hook
@@ -324,23 +325,26 @@ one-shot and interactive REPL.
 - [x] `agent/provider.ts`: streaming path via `client.responses.stream()` —
       `ProviderItem`/`ProviderEvent`/`ProviderStream`; SDK types kept out of
       the agent loop
-- [ ] `utils/stream.ts`: live text writer + tool status lines (one settled
+- [x] `utils/stream.ts`: live text writer + tool status lines (one settled
       line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
       output hidden by default (model-facing); `--no-stream` buffering;
       `--verbose` full detail
 - **Tests:** `tools/registry`, `tools/schema` (strict shape) ✓;
       `agent/agent` with a fake stream (multi-step, errors, iteration
-      exhaustion) ✓; `tools/shell` (exit codes, timeout, output cap) and
-      `utils/stream` (`ansis.strip`) land with their modules
-- **Docs:** update as needed
+      exhaustion, approval, `onToolResult`) ✓; `tools/shell` (exit codes,
+      timeout, output cap) ✓; `utils/stream` (text, status settle, pause/
+      resume, `enabled:false`) ✓ — 90 tests passing
+- **Docs:** updated this file + `README.md` (tools + approval UX)
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
   status lines settle to one line per call; the approval prompt pauses until
   answered and honors `y`/`n`/`a`; non-interactive tool calls auto-deny;
-  failures show `✗` + snippet; `--no-stream`/`--verbose` behave.
+  failures show `✗` + snippet; `--no-stream`/`--verbose` behave. Verified
+  end-to-end against local Ollama (multi-step math, success, failure, and
+  deny flows, plus the interactive approval path on a PTY).
 - **Commits:** three focused commits — (1) tools core (types, schema, registry)
-  ✓, (2) streaming loop (provider, agent, call sites), (3) shell tool + stream
-  writer + UX wiring (approval, status lines, REPL, flags). Each green on its
-  own.
+  ✓, (2) streaming loop (provider, agent, call sites) ✓, (3) shell tool +
+  stream writer + UX wiring (approval, status lines, REPL, flags) — each
+  green on its own.
 
 ---
 

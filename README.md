@@ -5,10 +5,10 @@ Interacts with you one-shot or in a REPL, runs local tools (files, shell, git),
 streams output, and integrates MCP servers — all behind a declarative
 permission system.
 
-> **Status:** early development. Phase 0 (scaffold) is done; Phase 1 (CLI
-> parsing, config, plain chat) is done. One-shot queries and the interactive
-> REPL work today. Tools, streaming, and the permission engine land in
-> Phases 2–4.
+> **Status:** early development. Phases 0–2 are done: one-shot queries, the
+> interactive REPL, streaming output, and a function-calling loop with a local
+> `run_command` shell tool all work today. The full tool suite and the
+> permission rule engine land in Phases 3–4.
 
 ## Requirements
 
@@ -32,6 +32,27 @@ pcode                         # interactive REPL
 ```
 
 The model is selected with `--model` or the config file.
+
+### Tools
+
+The agent can call local tools. Currently implemented: `run_command` — runs a
+shell command via `/bin/sh` in the workspace root (`config.root`), with a
+timeout (`config.toolTimeout`, default 30s) and capped output. The tool
+returns a text blob starting with `exit <code>` followed by truncated stdout
+and stderr; a timeout reports `exit 124`.
+
+### Tool approval
+
+Before a tool call runs, the agent loop asks for approval:
+
+- **interactive terminal**: a `Run? (y/n/a)` prompt — `y` runs once, `n`
+  denies, `a` allows for the rest of the session
+- **`--yes` (auto mode)**: auto-approves
+- **`plan` mode**: denies
+- **non-interactive** (one-shot prompt, piped stdin): auto-denies
+
+Approvals are session-only until the Phase 3 rule engine (allow/ask/deny
+rules) replaces the prompt.
 
 ### Options
 
@@ -114,6 +135,12 @@ approval you answer:
 - `n` — deny
 - `a` — always allow (records the exact pattern, session-only for now)
 
+**Phase 3 (planned).** Today (Phase 2) approval is mode-based instead of
+rule-based: interactive terminals get the `Run? (y/n/a)` prompt, `--yes`
+auto-approves, `plan` denies, and non-interactive runs auto-deny (see
+[Tool approval](#tool-approval)). The rule engine replaces that prompt hook
+without touching the tools.
+
 ### Modes
 
 - **interactive** (default): prompts for anything not allowed by a rule
@@ -131,7 +158,7 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 | --- | --- | --- |
 | 0 | Scaffold + docs | 🟢 done |
 | 1 | CLI parsing, config, plain chat | 🟢 done |
-| 2 | Streaming + tools + function-calling loop | ⚪ not started |
+| 2 | Streaming + tools + function-calling loop | 🟢 done |
 | 3 | Built-in tools + permission engine | ⚪ not started |
 | 4 | MCP integration | ⚪ not started |
 | 5 | Session persistence, context trimming, parallelism | ⚪ not started |

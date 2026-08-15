@@ -138,6 +138,27 @@ describe('runTurn', () => {
     expect(result.truncated).toBe(false)
   })
 
+  it('reports executed tool calls with elapsed time', async () => {
+    const registry = addRegistry()
+    const provider = fakeProvider([
+      {
+        deltas: [],
+        items: [{ type: 'function_call', call_id: 'c1', name: 'add', arguments: '{"a":1,"b":1}' }],
+        text: '',
+      },
+      { deltas: [], items: [{ type: 'message', role: 'assistant', content: '2' }], text: '2' },
+    ])
+    const onToolResult = vi.fn()
+
+    await runTurn(provider, [], 'add', { registry, onToolResult })
+
+    expect(onToolResult).toHaveBeenCalledTimes(1)
+    const [call, result, ms] = onToolResult.mock.calls[0]!
+    expect(call).toEqual({ callId: 'c1', name: 'add', args: { a: 1, b: 1 } })
+    expect(result).toMatchObject({ callId: 'c1', name: 'add', output: '2' })
+    expect(ms).toBeGreaterThanOrEqual(0)
+  })
+
   it('asks for approval before executing and reports denial', async () => {
     const registry = new ToolRegistry()
     registry.register({
