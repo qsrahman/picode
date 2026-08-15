@@ -221,7 +221,10 @@ conversation.
   ```
 
   `y` runs once, `n` denies, `a` allows for the session (approvals are
-  session-only until Phase 5).
+  session-only until Phase 5). The prompt is an injected hook owned by the
+  agent loop — never the tool — so Phase 3 swaps it for the rule engine
+  without touching `shell.ts`. Non-interactive runs (one-shot, piped stdin)
+  auto-deny instead of prompting; `--yes` bypasses.
 - Success: `✓ done (2.1s)` appended to the settled line. No output is shown by
   default — it is model-facing only; `--verbose` prints full stdout/stderr.
 - Failure: `✗ failed (exit 1, 2.1s)` in red plus a short dim stderr/stdout
@@ -303,12 +306,14 @@ one-shot and interactive REPL.
 - [ ] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
       execution
 - [ ] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
-      `cwd`=workspace, capped output. Until the permission engine lands
-      (Phase 3), the shell tool prompts for confirmation before running
-      (two-line `Run? (y/n/a)` prompt, see CLI UI/UX).
+      `cwd`=workspace, capped output. Pure execution: confirmation is the
+      agent loop's job (injected `requestApproval` hook), so Phase 3 swaps
+      the prompt for the rule engine without touching the tool.
 - [ ] `agent/agent.ts`: stream-based loop via `client.responses.stream()`;
       `function_call` events → execute → `sendFunctionCallOutputs`;
-      max-iterations guard; tool errors returned as strings to the model
+      max-iterations guard; tool errors returned as strings to the model;
+      an injected `requestApproval` hook gates each call (auto-deny when
+      not interactive)
 - [ ] `agent/provider.ts`: streaming path (`responses.create({ stream: true })`)
 - [ ] `utils/stream.ts`: live text writer + tool status lines (one settled
       line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
@@ -321,9 +326,11 @@ one-shot and interactive REPL.
 - **Docs:** update as needed
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
   status lines settle to one line per call; the approval prompt pauses until
-  answered and honors `y`/`n`/`a`; failures show `✗` + snippet;
-  `--no-stream`/`--verbose` behave.
-- **Commit** when green.
+  answered and honors `y`/`n`/`a`; non-interactive tool calls auto-deny;
+  failures show `✗` + snippet; `--no-stream`/`--verbose` behave.
+- **Commits:** three focused commits — (1) tools core (types, schema, registry),
+  (2) streaming loop (stream writer, provider, agent), (3) shell tool + UX
+  wiring (approval, status lines, REPL, flags). Each green on its own.
 
 ---
 
