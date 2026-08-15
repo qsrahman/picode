@@ -7,8 +7,6 @@ describe('parseCli', () => {
     expect(parseCli([])).toEqual({
       model: undefined,
       mode: undefined,
-      yes: false,
-      plan: false,
       config: undefined,
       noStream: false,
       verbose: false,

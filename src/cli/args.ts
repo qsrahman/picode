@@ -12,8 +12,6 @@ export class CliError extends Error {
 export interface CliOptions {
   model?: string
   mode?: Mode
-  yes: boolean
-  plan: boolean
   config?: string
   noStream: boolean
   verbose: boolean
@@ -79,8 +77,6 @@ export function parseCli(argv: string[]): CliOptions {
   return {
     model: values.model,
     mode,
-    yes: values.yes ?? false,
-    plan: values.plan ?? false,
     config: values.config,
     noStream: values['no-stream'] ?? false,
     verbose: values.verbose ?? false,

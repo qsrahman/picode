@@ -59,12 +59,14 @@ src/
   cli/              args, commands (slash), repl
   config/           zod schema + load/merge/validate
   agent/            provider (OpenAI impl) + agent loop
-  tools/            Tool interface, zod→JSON schema, registry, fs/shell/git
-  permissions/      rules engine, modes, policy, prompt
-  mcp/              MCP client + adapter (Phase 4)
+  tools/            Tool interface, zod→JSON schema, registry, shell
   utils/            palette + streaming/status writer
 tests/              mirrors src/ 1:1
 ```
+
+> The following modules are planned (see PLAN.md), not yet present:
+> `tools/fs.ts` + `tools/git.ts` (Phase 3), `permissions/` rule engine +
+> modes/policy/prompt (Phase 3), and `mcp/` client + adapter (Phase 4).
 
 ## Testing
 
