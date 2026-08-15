@@ -126,6 +126,9 @@ runTurn (Phase 2+, streaming):
   "root": "/path/to/workspace",          // default: process.cwd()
   "additionalDirs": ["../sibling"],
   "mode": "interactive",                  // interactive | auto | plan
+  "maxTokens": 8192,                      // response output token cap
+  "maxRetries": 3,                        // OpenAI SDK request retries
+  "toolTimeout": 30000,                   // default shell tool timeout (ms)
   "permission": {
     "shell": { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
     "edit":  { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
@@ -271,14 +274,17 @@ one-shot and interactive REPL.
 - [ ] `tools/schema.ts`: minimal zod → strict JSON-Schema converter
 - [ ] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
       execution
+- [ ] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
+      `cwd`=workspace, capped output. Until the permission engine lands
+      (Phase 3), the shell tool prompts for confirmation before running.
 - [ ] `agent/agent.ts`: stream-based loop via `client.responses.stream()`;
       `function_call` events → execute → `sendFunctionCallOutputs`;
       max-iterations guard; tool errors returned as strings to the model
 - [ ] `agent/provider.ts`: streaming path (`responses.create({ stream: true })`)
 - [ ] `output/stream.ts`: live text writer + tool status lines (name +
       summarized args); `--no-stream` buffering; `--verbose` full detail
-- [ ] Demo/echo tool for exercising the loop
 - **Tests:** `tools/registry`, `tools/schema` (strict shape),
+  `tools/shell` (exit codes, timeout, output cap),
   `agent/agent` with a fake stream (multi-step, errors, iteration exhaustion),
   `output/stream` (`ansis.strip`)
 - **Docs:** update as needed
@@ -294,7 +300,6 @@ one-shot and interactive REPL.
 
 - [ ] `tools/fs.ts`: `read_file` / `write_file` / `list_dir` / `stat`;
       workspace-root confined with traversal guard
-- [ ] `tools/shell.ts`: `run_command` (timeout, `cwd`=workspace, capped output)
 - [ ] `tools/git.ts`: `status` / `diff` / `log` / `show` (read-only)
 - [ ] `permissions/rules.ts`: `Tool(pattern)` engine — `deny > ask > allow`,
       wildcards, path globs, command prefixes, compound split + wrapper strip
@@ -308,7 +313,7 @@ one-shot and interactive REPL.
 - [ ] Toolset filtering via policy (denied tools hidden + hard-blocked)
 - [ ] Workspace `additionalDirs` support
 - [ ] CLI: `--mode` wired; plan/auto indicators; `/mode` `/tools`
-- **Tests:** fs round-trip + traversal in tmp dirs; shell exit/timeout/cap;
+- **Tests:** fs round-trip + traversal in tmp dirs;
   git on a temp repo; rule engine (precedence, patterns, compound, wrappers);
   modes; breakers; prompt decisions; policy integration
 - **Docs:** update as needed

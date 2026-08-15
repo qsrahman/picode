@@ -69,6 +69,9 @@ Config is merged in this order (later wins):
   "root": "/path/to/workspace",        // default: current directory
   "additionalDirs": ["../sibling"],
   "mode": "interactive",               // interactive | auto | plan
+  "maxTokens": 8192,                   // response output token cap
+  "maxRetries": 3,                     // OpenAI SDK request retries
+  "toolTimeout": 30000,                // default shell tool timeout (ms)
   "permission": {
     "shell": { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
     "edit":  { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
