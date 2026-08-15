@@ -215,9 +215,9 @@ conversation.
 - Ctrl+C cancels the turn → returns to prompt; Ctrl+C at prompt exits; Ctrl+D
   exits; multi-line continuation (`\` or open `{`); persisted per-project
   history.
-- Prompt: two lines — muted `Ask anything, /help for commands` hint above a
-  green `>` input line; dim `[plan]`/`[auto]` indicator on the hint line when
-  not interactive.
+- Prompt: two lines — plain `Ask anything, /help for commands` hint above a
+  green `>` input line; `[plan]`/`[auto]` indicator on the hint line when not
+  interactive.
 - Colors: fixed palette (assistant text default, tool lines dim, errors red,
   prompt green); `--no-color` + `NO_COLOR` honored.
 - No banner; errors styled, recoverable ones get a one-line `Tip:`.

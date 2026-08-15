@@ -91,10 +91,10 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
 
   const promptString = (): string => {
     if (pending) return palette.promptMuted('… ')
-    // Two-line prompt: a hint line above the input line. The mode indicator
-    // stays visible when the agent is not in interactive mode.
-    const mode = config.mode !== 'interactive' ? palette.promptMuted(` [${config.mode}]`) : ''
-    return `${palette.promptMuted('Ask anything, /help for commands')}${mode}\n${palette.prompt('>')} `
+    // Two-line prompt: a plain hint line above the input line. The mode
+    // indicator stays visible when the agent is not in interactive mode.
+    const mode = config.mode !== 'interactive' ? ` [${config.mode}]` : ''
+    return `Ask anything, /help for commands${mode}\n${palette.prompt('>')} `
   }
 
   // readline/promises' question() drops buffered lines on piped stdin, so the
