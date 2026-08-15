@@ -1,12 +1,12 @@
 import type { Provider, ProviderItem } from './provider.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
-import type { ToolCall, ToolDescriptor, ToolResult } from '../tools/types.ts'
+import type { ToolCall, ToolDefinition, ToolResult } from '../tools/types.ts'
 
 export const MAX_TOOL_ROUNDS = 8
 
 export interface RunOptions {
   controller?: AbortController
-  tools?: ToolDescriptor[]
+  tools?: ToolDefinition[]
   registry?: ToolRegistry
   // Gates every tool call. Phase 3 swaps this for the rule engine; a missing
   // hook (or a non-interactive caller that omits it) denies nothing, so the

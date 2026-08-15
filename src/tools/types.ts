@@ -26,7 +26,7 @@ export interface ToolResult {
   output: string
 }
 
-export interface ToolDescriptor {
+export interface ToolDefinition {
   type: 'function'
   name: string
   description: string

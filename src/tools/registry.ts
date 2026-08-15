@@ -1,6 +1,5 @@
 import type { z } from 'zod'
-
-import type { Tool, ToolCall, ToolDescriptor, ToolResult } from './types.ts'
+import type { Tool, ToolCall, ToolDefinition, ToolResult } from './types.ts'
 import { zodToJsonSchema } from './schema.ts'
 import { messageOf } from '../errors.ts'
 
@@ -24,7 +23,7 @@ export class ToolRegistry {
   }
 
   // Shape accepted by responses.create({ tools }).
-  descriptors(): ToolDescriptor[] {
+  descriptors(): ToolDefinition[] {
     return [...this.tools.values()].map((tool) => ({
       type: 'function',
       name: tool.name,

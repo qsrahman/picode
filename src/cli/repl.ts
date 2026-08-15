@@ -1,15 +1,14 @@
 import * as readline from 'node:readline'
-
 import type { CliOptions } from './args.ts'
 import type { Config } from '../config/schema.ts'
 import type { Provider, ProviderItem } from '../agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from '../agent/agent.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
-import type { ToolCall, ToolDescriptor, ToolResult } from '../tools/types.ts'
+import type { ToolCall, ToolDefinition, ToolResult } from '../tools/types.ts'
 import { decodeExitCode, excerptOf, runCommandName } from '../tools/shell.ts'
 import type { Palette } from '../utils/palette.ts'
 import { StreamWriter } from '../utils/stream.ts'
-import { isSlashCommand, runSlashCommand } from './commands.ts'
+import { isCommand, runCommand } from './commands.ts'
 import { messageOf } from '../errors.ts'
 import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
 import { approvalKey, summaryOf, applyApprovalAnswer } from './approval.ts'
@@ -21,7 +20,7 @@ export interface ReplOptions {
   historyFile: string
   args: CliOptions
   registry: ToolRegistry
-  tools: ToolDescriptor[]
+  tools: ToolDefinition[]
 }
 
 // A submitted line continues onto the next prompt when it ends in a backslash
@@ -238,8 +237,8 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     if (line === null) break
 
     if (line === '' && !pending) continue
-    if (isSlashCommand(line)) {
-      runSlashCommand(line, ctx)
+    if (isCommand(line)) {
+      runCommand(line, ctx)
       continue
     }
     if (line !== '') pending = pending ? `${pending}\n${line}` : line

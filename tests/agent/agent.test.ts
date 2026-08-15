@@ -9,7 +9,7 @@ import type {
   ProviderStream,
 } from '../../src/agent/provider.ts'
 import { ToolRegistry } from '../../src/tools/registry.ts'
-import type { ToolDescriptor } from '../../src/tools/types.ts'
+import type { ToolDefinition } from '../../src/tools/types.ts'
 
 interface FakeResponse {
   deltas: string[]
@@ -91,7 +91,7 @@ describe('runTurn', () => {
       { role: 'assistant', content: 'a1' },
     ]
     const controller = new AbortController()
-    const tools: ToolDescriptor[] = [
+    const tools: ToolDefinition[] = [
       { type: 'function', name: 'add', description: 'add', parameters: {} },
     ]
     const provider = fakeProvider([{ deltas: [], items: [], text: 'a2' }])

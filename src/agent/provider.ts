@@ -1,9 +1,8 @@
 import OpenAI from 'openai'
 import type { ResponseInputItem } from 'openai/resources/responses/responses'
 import type { ResponseStream } from 'openai/lib/responses/ResponseStream'
-
 import type { Config } from '../config/schema.ts'
-import type { ToolDescriptor } from '../tools/types.ts'
+import type { ToolDefinition } from '../tools/types.ts'
 
 // Structural description of a Responses conversation item. The SDK's item
 // types are too strict (and version-bound) to leak into the agent loop; the
@@ -31,14 +30,14 @@ export interface Provider {
   readonly model: string
   stream(
     input: ProviderItem[],
-    options: { tools: ToolDescriptor[]; signal?: AbortSignal },
+    options: { tools: ToolDefinition[]; signal?: AbortSignal },
   ): Promise<ProviderStream>
 }
 
 // Isolates the OpenAI SDK from the agent loop so a second provider is one new
 // file. The Responses API is stateless (store: false is the default here), so
 // the caller owns the full conversation history. Tool definitions are mapped
-// into SDK shape here, keeping the provider-agnostic ToolDescriptor free of
+// into SDK shape here, keeping the provider-agnostic ToolDefinition free of
 // OpenAI-only fields like `strict`.
 export function createProvider(config: Config, apiKey: string): Provider {
   const client = new OpenAI({

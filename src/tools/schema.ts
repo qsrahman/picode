@@ -8,7 +8,7 @@ export type JsonSchema = Record<string, unknown>
 // zod 4's public "classic" types are aliased ($ZodType, $ZodLooseShape) and
 // don't expose the runtime structure, so read the private _def instead: it
 // discriminates on a stable `type` string (verified against zod 4.4).
-interface ZodDef {
+interface ZodDefinition {
   type: string
   innerType?: z.ZodTypeAny
   element?: z.ZodTypeAny
@@ -18,7 +18,7 @@ interface ZodDef {
 }
 
 export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
-  const def = schema._def as unknown as ZodDef
+  const def = schema.def as unknown as ZodDefinition
   switch (def.type) {
     case 'string':
       return { type: 'string' }
@@ -44,7 +44,7 @@ export function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
       const required: string[] = []
       for (const [key, child] of Object.entries(def.shape ?? {})) {
         properties[key] = zodToJsonSchema(child)
-        const childDef = child._def as unknown as ZodDef
+        const childDef = child.def as unknown as ZodDefinition
         if (childDef.type !== 'optional') required.push(key)
       }
       return { type: 'object', properties, required, additionalProperties: false }

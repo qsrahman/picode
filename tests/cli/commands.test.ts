@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { isSlashCommand, runSlashCommand, type SlashContext } from '../../src/cli/commands.ts'
+import { isCommand, runCommand, type CommandContext } from '../../src/cli/commands.ts'
 
-function makeCtx(): SlashContext & { printed: string[] } {
+function makeCtx(): CommandContext & { printed: string[] } {
   const printed: string[] = []
   return {
     print: vi.fn((line: string) => {
@@ -18,23 +18,23 @@ function makeCtx(): SlashContext & { printed: string[] } {
   }
 }
 
-describe('isSlashCommand', () => {
+describe('isCommand', () => {
   it('recognizes slash lines', () => {
-    expect(isSlashCommand('/help')).toBe(true)
-    expect(isSlashCommand('/help extra')).toBe(true)
+    expect(isCommand('/help')).toBe(true)
+    expect(isCommand('/help extra')).toBe(true)
   })
 
   it('rejects prose, empty input, and a bare slash', () => {
-    expect(isSlashCommand('not a command')).toBe(false)
-    expect(isSlashCommand('')).toBe(false)
-    expect(isSlashCommand('/')).toBe(false)
+    expect(isCommand('not a command')).toBe(false)
+    expect(isCommand('')).toBe(false)
+    expect(isCommand('/')).toBe(false)
   })
 })
 
-describe('runSlashCommand', () => {
+describe('runCommand', () => {
   it('prints dimmed, alphabetically sorted slash help for /help', () => {
     const ctx = makeCtx()
-    runSlashCommand('/help', ctx)
+    runCommand('/help', ctx)
     expect(ctx.dim).toHaveBeenCalledOnce()
     const output = ctx.printed.join('\n')
     const commands = ['/clear', '/exit', '/help', '/model', '/mode', '/reset']
@@ -45,39 +45,39 @@ describe('runSlashCommand', () => {
 
   it('clears the terminal for /clear', () => {
     const ctx = makeCtx()
-    runSlashCommand('/clear', ctx)
+    runCommand('/clear', ctx)
     expect(ctx.clearScreen).toHaveBeenCalledOnce()
     expect(ctx.resetConversation).not.toHaveBeenCalled()
   })
 
   it('resets the conversation for /reset', () => {
     const ctx = makeCtx()
-    runSlashCommand('/reset', ctx)
+    runCommand('/reset', ctx)
     expect(ctx.resetConversation).toHaveBeenCalledOnce()
     expect(ctx.printed.join('\n')).toContain('conversation reset')
   })
 
   it('prints the active model for /model', () => {
     const ctx = makeCtx()
-    runSlashCommand('/model', ctx)
+    runCommand('/model', ctx)
     expect(ctx.printed.join('\n')).toContain('gpt-fake')
   })
 
   it('prints the current mode for /mode', () => {
     const ctx = makeCtx()
-    runSlashCommand('/mode', ctx)
+    runCommand('/mode', ctx)
     expect(ctx.printed.join('\n')).toContain('interactive')
   })
 
   it('exits for /exit', () => {
     const ctx = makeCtx()
-    runSlashCommand('/exit', ctx)
+    runCommand('/exit', ctx)
     expect(ctx.exit).toHaveBeenCalledOnce()
   })
 
   it('reports unknown commands and points at /help', () => {
     const ctx = makeCtx()
-    expect(runSlashCommand('/bogus', ctx)).toBe(true)
+    expect(runCommand('/bogus', ctx)).toBe(true)
     const output = ctx.printed.join('\n')
     expect(output).toContain('/bogus')
     expect(output).toContain('/help')
