@@ -16,7 +16,7 @@ export function isSlashCommand(input: string): boolean {
 }
 
 // Sorted alphabetically so /help output is predictable at a glance.
-const SLASH_HELP = `Slash commands:
+const SLASH_HELP = `Commands:
   /clear   clear the terminal
   /exit    quit pcode
   /help    show this help
@@ -36,6 +36,7 @@ export function runSlashCommand(input: string, ctx: SlashContext): boolean {
   switch (cmd) {
     case '/help':
       ctx.print(ctx.dim(SLASH_HELP))
+      ctx.print('')
       return true
     case '/clear':
       ctx.clearScreen()
