@@ -56,7 +56,8 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm format` before committing.
 ```
 src/
   index.ts          entry: parse → config → dispatch (one-shot | REPL)
-  cli/              args, commands (slash), repl
+  errors.ts         shared error classes + messageOf helper
+  cli/              args, commands (slash), repl, history, approval
   config/           zod schema + load/merge/validate
   agent/            provider (OpenAI impl) + agent loop
   tools/            Tool interface, zod→JSON schema, registry, shell

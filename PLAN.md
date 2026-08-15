@@ -63,9 +63,12 @@ commit**.
 ```
 src/
   index.ts              entry: parse → config → dispatch (one-shot | REPL)
+  errors.ts             shared error classes (CliError, ConfigError) + messageOf helper
   cli/
     args.ts             node:util.parseArgs; flag/positional definitions
     commands.ts         slash-command registry (/help /model /mode /clear /reset /tools /exit)
+    history.ts          loadHistory / saveHistory / HISTORY_SIZE
+    approval.ts         approvalKey / summaryOf / applyApprovalAnswer
     repl.ts             readline session: history, multiline, keys, Ctrl+C/D
   config/
     schema.ts           zod schemas for config + CLI overrides
@@ -76,7 +79,7 @@ src/
   tools/
     types.ts            Tool interface
     schema.ts           minimal zod → strict JSON-Schema converter
-    registry.ts         name → Tool lookup; toolset filtering; execution
+    registry.ts         name → Tool lookup; execution
     fs.ts               read_file / write_file / list_dir / stat
     shell.ts            run_command (timeout, cwd, capped output)
     git.ts              status / diff / log / show (read-only)
@@ -322,8 +325,7 @@ one-shot and interactive REPL.
 - [x] `tools/types.ts`: `Tool` interface (name, description, zod input schema,
       execute)
 - [x] `tools/schema.ts`: minimal zod → strict JSON-Schema converter
-- [x] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
-      execution
+- [x] `tools/registry.ts`: registration, lookup, sequential execution
 - [x] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
       `cwd`=workspace, capped output (`exit <code>` + truncated stdout/stderr).
       Pure execution: confirmation is the agent loop's job (injected
@@ -342,22 +344,32 @@ one-shot and interactive REPL.
       line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
       output hidden by default (model-facing); `--no-stream` buffering;
       `--verbose` full detail
+- [x] **UX: truncation notice** — when `TurnResult.truncated` is true (hit
+      `MAX_TOOL_ROUNDS`), display error notice in REPL and stderr in one-shot
+- [x] **Cleanup: consolidate errors** — shared `CliError`, `ConfigError`,
+      `messageOf` helper in `errors.ts` (eliminated 5 duplication sites)
+- [x] **Cleanup: extract REPL logic** — `cli/history.ts` (load/save/HISTORY_SIZE),
+      `cli/approval.ts` (approvalKey/summaryOf/applyApprovalAnswer) for
+      improved testability
+- [x] **Cleanup: remove dead code** — palette.assistant (test-only),
+      `registry.filter()` (Phase 3 premature abstraction)
 - **Tests:** `tools/registry`, `tools/schema` (strict shape) ✓;
       `agent/agent` with a fake stream (multi-step, errors, iteration
       exhaustion, approval, `onToolResult`) ✓; `tools/shell` (exit codes,
       timeout, output cap) ✓; `utils/stream` (text, status settle, pause/
-      resume, `enabled:false`) ✓ — 90 tests passing
+      resume, `enabled:false`) ✓; `cli/history` (round-trip, cap, mkdir) ✓;
+      `cli/approval` (keying, truncation, answer logic) ✓ — 108 tests passing
 - **Docs:** updated this file + `README.md` (tools + approval UX)
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
   status lines settle to one line per call; the approval prompt pauses until
   answered and honors `y`/`n`/`a`; non-interactive tool calls auto-deny;
-  failures show `✗` + snippet; `--no-stream`/`--verbose` behave. Verified
-  end-to-end against local Ollama (multi-step math, success, failure, and
-  deny flows, plus the interactive approval path on a PTY).
-- **Commits:** three focused commits — (1) tools core (types, schema, registry)
-  ✓, (2) streaming loop (provider, agent, call sites) ✓, (3) shell tool +
-  stream writer + UX wiring (approval, status lines, REPL, flags) — each
-  green on its own.
+  failures show `✗` + snippet; truncation at round 8 surfaces notice;
+  `--no-stream`/`--verbose` behave. Verified end-to-end against local Ollama
+  (multi-step math, success, failure, and deny flows, plus the interactive
+  approval path on a PTY).
+- **Commits:** Phase 2 core (1 commit) + cleanup pass (1 commit; removed
+  duplication, extracted modules, surfaced truncated UX, eliminated dead code);
+  both green on their own.
 
 ---
 
