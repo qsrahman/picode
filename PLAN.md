@@ -115,6 +115,12 @@ runTurn (Phase 2+, streaming):
   return final text (also appended to client-side history)
 ```
 
+> Streaming loop mechanics (SDK 7.4): there is no `sendFunctionCallOutputs`
+> helper, so each round pushes the prior `response.output` plus
+> `{type:'function_call_output', call_id, output}` into `input` and calls
+> `stream()` again (D5). Text deltas stream live from the first request; the
+> loop exits when a response contains no function calls.
+
 ### Config schema (zod-validated)
 
 ```jsonc
@@ -175,7 +181,7 @@ conversation.
 | D3 | zod→JSON Schema | Minimal in-house converter emitting strict-mode schemas (`additionalProperties:false`, all-required) |
 | D4 | Git tools | Read-only always; mutating git ops gated (none implemented yet) |
 | D5 | History | Client-side accumulation (`input.push(...response.output)` + `function_call_output` items); `store:false` |
-| D6 | Streaming | Introduced in Phase 2 around `client.responses.stream()` / `sendFunctionCallOutputs`; no later rework |
+| D6 | Streaming | Phase 2 streams via `client.responses.stream()`. SDK 7.4 has no `sendFunctionCallOutputs`, so each tool round re-creates the request from D5's accumulated items — no later rework |
 | D7 | Security | Workspace-root confined (path traversal blocked, shell `cwd`=workspace); `additionalDirs` extends it |
 | D8 | Tool calls | Sequential execution; parallelism is a Phase 5 enhancement of the same loop |
 | D9 | Output | Plain text + ansis; no markdown renderer |
@@ -296,41 +302,45 @@ one-shot and interactive REPL.
 
 ---
 
-### Phase 2 — Streaming + tools + function-calling loop ⚪ not started
+### Phase 2 — Streaming + tools + function-calling loop 🟡 in progress
 
 **Goal:** the agent can call tools; all output streams live.
 
-- [ ] `tools/types.ts`: `Tool` interface (name, description, zod input schema,
+- [x] `tools/types.ts`: `Tool` interface (name, description, zod input schema,
       execute)
-- [ ] `tools/schema.ts`: minimal zod → strict JSON-Schema converter
-- [ ] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
+- [x] `tools/schema.ts`: minimal zod → strict JSON-Schema converter
+- [x] `tools/registry.ts`: registration, lookup, toolset filtering, sequential
       execution
 - [ ] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
       `cwd`=workspace, capped output. Pure execution: confirmation is the
       agent loop's job (injected `requestApproval` hook), so Phase 3 swaps
       the prompt for the rule engine without touching the tool.
-- [ ] `agent/agent.ts`: stream-based loop via `client.responses.stream()`;
-      `function_call` events → execute → `sendFunctionCallOutputs`;
-      max-iterations guard; tool errors returned as strings to the model;
-      an injected `requestApproval` hook gates each call (auto-deny when
-      not interactive)
-- [ ] `agent/provider.ts`: streaming path (`responses.create({ stream: true })`)
+- [x] `agent/agent.ts`: stream-based tool loop — each round streams via
+      `provider.stream`, extracts `function_call` items from `response.output`,
+      executes through the registry behind an injected `requestApproval` hook
+      (auto-deny when not interactive), then pushes `function_call_output`
+      items and re-creates the request (D5); `MAX_TOOL_ROUNDS` guard; tool
+      errors returned as strings to the model
+- [x] `agent/provider.ts`: streaming path via `client.responses.stream()` —
+      `ProviderItem`/`ProviderEvent`/`ProviderStream`; SDK types kept out of
+      the agent loop
 - [ ] `utils/stream.ts`: live text writer + tool status lines (one settled
       line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
       output hidden by default (model-facing); `--no-stream` buffering;
       `--verbose` full detail
-- **Tests:** `tools/registry`, `tools/schema` (strict shape),
-  `tools/shell` (exit codes, timeout, output cap),
-  `agent/agent` with a fake stream (multi-step, errors, iteration exhaustion),
-  `utils/stream` (`ansis.strip`)
+- **Tests:** `tools/registry`, `tools/schema` (strict shape) ✓;
+      `agent/agent` with a fake stream (multi-step, errors, iteration
+      exhaustion) ✓; `tools/shell` (exit codes, timeout, output cap) and
+      `utils/stream` (`ansis.strip`) land with their modules
 - **Docs:** update as needed
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
   status lines settle to one line per call; the approval prompt pauses until
   answered and honors `y`/`n`/`a`; non-interactive tool calls auto-deny;
   failures show `✗` + snippet; `--no-stream`/`--verbose` behave.
-- **Commits:** three focused commits — (1) tools core (types, schema, registry),
-  (2) streaming loop (stream writer, provider, agent), (3) shell tool + UX
-  wiring (approval, status lines, REPL, flags). Each green on its own.
+- **Commits:** three focused commits — (1) tools core (types, schema, registry)
+  ✓, (2) streaming loop (provider, agent, call sites), (3) shell tool + stream
+  writer + UX wiring (approval, status lines, REPL, flags). Each green on its
+  own.
 
 ---
 

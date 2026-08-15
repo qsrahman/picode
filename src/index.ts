@@ -56,9 +56,8 @@ async function main(): Promise<void> {
   const palette = createPalette(shouldUseColor(args))
 
   if (args.prompt) {
-    const next = await runTurn(provider, [], args.prompt)
-    const reply = next[next.length - 1]
-    if (reply?.role === 'assistant') process.stdout.write(`${reply.content}\n`)
+    const result = await runTurn(provider, [], args.prompt)
+    if (result.text) process.stdout.write(`${result.text}\n`)
     return
   }
 

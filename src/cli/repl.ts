@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 
 import type { Config } from '../config/schema.ts'
-import type { Provider, ProviderMessage } from '../agent/provider.ts'
+import type { Provider, ProviderItem } from '../agent/provider.ts'
 import { runTurn } from '../agent/agent.ts'
 import type { Palette } from '../utils/palette.ts'
 import { isSlashCommand, runSlashCommand } from './commands.ts'
@@ -76,7 +76,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     historySize: HISTORY_SIZE,
   })
 
-  let conversation: ProviderMessage[] = []
+  let conversation: ProviderItem[] = []
   let history = [...loaded]
   let pending = ''
   let turnController: AbortController | null = null
@@ -176,12 +176,11 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     pending = ''
     turnController = new AbortController()
     try {
-      const next = await runTurn(provider, conversation, prompt, {
+      const result = await runTurn(provider, conversation, prompt, {
         controller: turnController,
       })
-      const reply = next[next.length - 1]
-      conversation = next
-      if (reply?.role === 'assistant') process.stdout.write(`\n${reply.content}\n\n`)
+      conversation = result.items
+      if (result.text) process.stdout.write(`\n${result.text}\n\n`)
       history.push(prompt)
       saveHistory(opts.historyFile, history)
     } catch (err) {
