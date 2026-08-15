@@ -154,8 +154,9 @@ pcode [prompt]            one-shot when a prompt is given, REPL otherwise
 ### Slash commands (REPL)
 
 `/help` `/model` `/mode` `/clear` `/tools` `/exit` — registered incrementally
-as their dependencies land (Phase 1: `/help` `/clear` `/exit`; Phase 3:
-`/mode` `/tools`).
+as their dependencies land (Phase 1: `/help` `/clear` `/model` `/mode`
+`/exit`, with `/model` `/mode` read-only; Phase 3: `/mode` switching and
+`/tools`).
 
 ## 5. Locked design decisions
 
@@ -239,29 +240,33 @@ authoritative project docs.
 
 ---
 
-### Phase 1 — CLI parsing, config, plain chat ⚪ not started
+### Phase 1 — CLI parsing, config, plain chat 🟢 done
 
 **Goal:** `pcode` holds a tool-free conversation with a configurable model —
 one-shot and interactive REPL.
 
-- [ ] `cli/args.ts`: `node:util.parseArgs`; all flags + positionals
-- [ ] `config/schema.ts`: zod config schema
-- [ ] `config/config.ts`: load/merge/validate (defaults ← user ← project ← CLI)
-- [ ] `agent/provider.ts`: `Provider` interface + OpenAI Responses impl
+- [x] `cli/args.ts`: `node:util.parseArgs`; all flags + positionals
+- [x] `config/schema.ts`: zod config schema
+- [x] `config/config.ts`: load/merge/validate (defaults ← user ← project ← CLI)
+- [x] `agent/provider.ts`: `Provider` interface + OpenAI Responses impl
       (non-streaming `responses.create`)
-- [ ] `agent/agent.ts`: `runTurn` text-only; client-side history accumulation
-- [ ] `output/palette.ts`: fixed palette + `NO_COLOR`/`--no-color`
-- [ ] `cli/commands.ts` + `cli/repl.ts`: readline session — persisted
-      per-project history, multi-line continuation, Ctrl+C cancels input,
-      Ctrl+D exits; `/help` `/clear` `/exit`
-- [ ] `index.ts` dispatch: `--version` / `--help` / one-shot / REPL
+- [x] `agent/agent.ts`: `runTurn` text-only; client-side history accumulation
+- [x] `output/palette.ts`: fixed palette + `NO_COLOR`/`--no-color`
+- [x] `cli/commands.ts` + `cli/repl.ts`: readline session — persisted
+      per-project history, multi-line continuation, Ctrl+C cancels the turn /
+      exits at the prompt, Ctrl+D exits; `/help` `/clear` `/model` `/mode`
+      (read-only) `/exit`
+- [x] `index.ts` dispatch: `--version` / `--help` / one-shot / REPL
 - **Tests:** `cli/args`, `config/*` (merge order, validation),
   `agent/agent` with a fake provider (no network), `output/palette`
-  (`ansis.strip`)
-- **Docs:** update this file, `README.md` (CLI usage), `AGENTS.md`
+  (`ansis.strip`), `cli/commands`, `cli/repl` (`needsContinuation`) — 50
+  tests passing
+- **Docs:** updated this file + `README.md` (CLI usage); `AGENTS.md`
+  unchanged (module map and conventions already matched)
 - **Acceptance:** `pcode "hi"` prints a model reply; REPL supports multi-turn
-  conversation; flags override config; `--version`/`--help` correct.
-- **Commit** when green.
+  conversation; flags override config; `--version`/`--help` correct. Verified
+  end-to-end against a local mock of the Responses API.
+- **Commit:** `feat: Phase 1 — CLI parsing, config, plain chat`
 
 ---
 

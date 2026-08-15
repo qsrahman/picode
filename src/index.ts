@@ -1,15 +1,76 @@
 #!/usr/bin/env node
 
+import { join } from 'node:path'
+
+import { CliError, parseCli } from './cli/args.ts'
 import { HELP_TEXT } from './cli/help.ts'
+import { runRepl } from './cli/repl.ts'
+import { ConfigError, resolveConfig } from './config/config.ts'
+import { createProvider } from './agent/provider.ts'
+import { runTurn } from './agent/agent.ts'
+import { createPalette, shouldUseColor } from './output/palette.ts'
 import { VERSION } from './version.ts'
 
-// Phase 0 smoke entry: proves the Node 26 + type-stripping toolchain runs and
-// wires version/help output. Formal flag parsing and dispatch land in Phase 1
-// (src/cli/args.ts); until then every invocation prints version or help.
-const args = process.argv.slice(2)
+async function main(): Promise<void> {
+  let args
+  try {
+    args = parseCli(process.argv.slice(2))
+  } catch (err) {
+    if (err instanceof CliError) {
+      process.stderr.write(`error: ${err.message}\n`)
+      process.exit(1)
+    }
+    throw err
+  }
 
-if (args.includes('--version')) {
-  process.stdout.write(`pcode ${VERSION}\n`)
-} else {
-  process.stdout.write(HELP_TEXT)
+  if (args.version) {
+    process.stdout.write(`pcode ${VERSION}\n`)
+    return
+  }
+  if (args.help) {
+    process.stdout.write(HELP_TEXT)
+    return
+  }
+
+  let config
+  try {
+    config = resolveConfig(args)
+  } catch (err) {
+    if (err instanceof ConfigError) {
+      process.stderr.write(`error: ${err.message}\n`)
+      process.exit(1)
+    }
+    throw err
+  }
+
+  const apiKey = process.env[config.apiKeyEnv]
+  if (!apiKey) {
+    process.stderr.write(
+      `error: no API key found (${config.apiKeyEnv} is not set)\n\n` +
+        `Tip: export ${config.apiKeyEnv}=<your key> to use pcode.\n`,
+    )
+    process.exit(1)
+  }
+
+  const provider = createProvider(config, apiKey)
+  const palette = createPalette(shouldUseColor(args))
+
+  if (args.prompt) {
+    const next = await runTurn(provider, [], args.prompt)
+    const reply = next[next.length - 1]
+    if (reply?.role === 'assistant') process.stdout.write(`${reply.content}\n`)
+    return
+  }
+
+  await runRepl({
+    provider,
+    config,
+    palette,
+    historyFile: join(process.cwd(), '.pcode', 'history'),
+  })
 }
+
+main().catch((err: unknown) => {
+  process.stderr.write(`fatal: ${err instanceof Error ? err.message : String(err)}\n`)
+  process.exit(1)
+})

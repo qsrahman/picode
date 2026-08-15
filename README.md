@@ -5,8 +5,10 @@ Interacts with you one-shot or in a REPL, runs local tools (files, shell, git),
 streams output, and integrates MCP servers — all behind a declarative
 permission system.
 
-> **Status:** early development. Phase 0 (scaffold) is done. The agent loop is
-> not functional yet; `--version`/`--help` are the only wired behavior.
+> **Status:** early development. Phase 0 (scaffold) is done; Phase 1 (CLI
+> parsing, config, plain chat) is done. One-shot queries and the interactive
+> REPL work today. Tools, streaming, and the permission engine land in
+> Phases 2–4.
 
 ## Requirements
 
@@ -49,7 +51,10 @@ The model is selected with `--model` or the config file.
 ### REPL commands
 
 `/help` `/model` `/mode` `/clear` `/tools` `/exit`
-(`/help` `/clear` `/exit` land with Phase 1; `/mode` `/tools` with Phase 3.)
+
+Available now (Phase 1): `/help` `/clear` `/model` `/mode` (read-only)
+`/exit`. `/tools` and mode switching arrive with the permission engine
+(Phase 3).
 
 ## Configuration
 
@@ -107,7 +112,7 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 0 | Scaffold + docs | 🟢 done |
-| 1 | CLI parsing, config, plain chat | ⚪ not started |
+| 1 | CLI parsing, config, plain chat | 🟢 done |
 | 2 | Streaming + tools + function-calling loop | ⚪ not started |
 | 3 | Built-in tools + permission engine | ⚪ not started |
 | 4 | MCP integration | ⚪ not started |
