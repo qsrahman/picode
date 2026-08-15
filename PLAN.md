@@ -214,7 +214,8 @@ as their dependencies land (Phase 1: `/help` `/clear` `/model` `/mode`
 - Ctrl+C cancels the turn → returns to prompt; Ctrl+C at prompt exits; Ctrl+D
   exits; multi-line continuation (`\` or open `{`); persisted per-project
   history.
-- Prompt: minimal `›` + muted model badge; dim `[plan]`/`[auto]` indicator when
+- Prompt: two lines — muted `Ask anything, /help for commands` hint above a
+  green `>` input line; dim `[plan]`/`[auto]` indicator on the hint line when
   not interactive.
 - Colors: fixed palette (assistant text default, tool lines dim, errors red,
   prompt green); `--no-color` + `NO_COLOR` honored.
