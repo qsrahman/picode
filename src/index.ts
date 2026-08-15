@@ -6,16 +6,12 @@ import { CliError, parseCli } from './cli/args.ts'
 import { HELP_TEXT } from './cli/help.ts'
 import { runRepl } from './cli/repl.ts'
 import { ConfigError, resolveConfig } from './config/config.ts'
-import { loadEnvFile } from './config/env.ts'
 import { createProvider } from './agent/provider.ts'
 import { runTurn } from './agent/agent.ts'
 import { createPalette, shouldUseColor } from './output/palette.ts'
 import { VERSION } from './version.ts'
 
 async function main(): Promise<void> {
-  // Project .env feeds OPENAI_API_KEY / OPENAI_BASE_URL before config resolves.
-  loadEnvFile(join(process.cwd(), '.env'))
-
   let args
   try {
     args = parseCli(process.argv.slice(2))

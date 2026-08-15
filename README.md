@@ -90,8 +90,9 @@ Config is merged in this order (later wins):
 
 ### `.env`
 
-`pcode` loads `.env` from the working directory at startup, so you can keep
-credentials out of your shell (see `.env.example`):
+The `pnpm start` / `pnpm dev` scripts load `.env` from the project root via
+Node's `--env-file` flag, so you can keep credentials out of your shell (see
+`.env.example`):
 
 ```
 OPENAI_API_KEY=sk-...

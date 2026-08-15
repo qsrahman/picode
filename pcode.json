@@ -1,0 +1,4 @@
+{
+  "model": "gemma4:cloud",
+  "baseURL": "http://localhost:11434/v1"
+}

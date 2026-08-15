@@ -70,7 +70,6 @@ src/
   config/
     schema.ts           zod schemas for config + CLI overrides
     config.ts           resolve & merge defaults ← user ← project ← CLI
-    env.ts              project .env loader (OPENAI_API_KEY / OPENAI_BASE_URL)
   agent/
     provider.ts         Provider interface + OpenAI (Responses) impl
     agent.ts            runTurn(): streaming tool-calling loop (core of the agent)
@@ -145,8 +144,8 @@ flags`. Resolution: `--config <path>` → `./pcode.json` →
 `~/.config/pcode/config.json`. The environment layers on top of config files
 but below CLI flags: the API key is read from `apiKeyEnv` (default
 `OPENAI_API_KEY`), `OPENAI_BASE_URL` overrides `baseURL`, and
-`OPENAI_DEFAULT_MODEL` overrides `model`. A `.env` file in the working
-directory is loaded at startup (dotenv semantics: comments, quotes, `export`;
+`OPENAI_DEFAULT_MODEL` overrides `model`. The `pnpm start` / `pnpm dev`
+scripts load a project `.env` via Node's `--env-file` flag (dotenv semantics;
 existing variables win).
 
 ### CLI surface
@@ -209,9 +208,25 @@ conversation.
 
 - Line-based scrollback REPL (readline + ansis, zero extra deps); inline
   updates via `cursorTo`/`clearLine`.
-- Model text streams live; tool calls render `› shell: pnpm test` →
-  `✓ done (2.1s)` with summarized args (`--verbose` expands).
-- Active status rewrites in place, settles to a permanent line.
+- Model text streams live; each tool call starts a dim status line
+  `› shell: pnpm test` with an in-place elapsed timer, which settles into one
+  permanent scrollback line when done (the running state never pollutes
+  scrollback).
+- Approval (Phase 2, before the rule engine): a two-line prompt that pauses the
+  REPL —
+
+  ```
+  › shell: pnpm test
+    Run? (y/n/a)
+  ```
+
+  `y` runs once, `n` denies, `a` allows for the session (approvals are
+  session-only until Phase 5).
+- Success: `✓ done (2.1s)` appended to the settled line. No output is shown by
+  default — it is model-facing only; `--verbose` prints full stdout/stderr.
+- Failure: `✗ failed (exit 1, 2.1s)` in red plus a short dim stderr/stdout
+  excerpt; the full error is also returned to the model to self-correct.
+- Tool args are summarized by default; `--verbose` expands.
 - Ctrl+C cancels the turn → returns to prompt; Ctrl+C at prompt exits; Ctrl+D
   exits; multi-line continuation (`\` or open `{`); persisted per-project
   history.
@@ -289,20 +304,25 @@ one-shot and interactive REPL.
       execution
 - [ ] `tools/shell.ts`: `run_command` — timeout from `toolTimeout` config,
       `cwd`=workspace, capped output. Until the permission engine lands
-      (Phase 3), the shell tool prompts for confirmation before running.
+      (Phase 3), the shell tool prompts for confirmation before running
+      (two-line `Run? (y/n/a)` prompt, see CLI UI/UX).
 - [ ] `agent/agent.ts`: stream-based loop via `client.responses.stream()`;
       `function_call` events → execute → `sendFunctionCallOutputs`;
       max-iterations guard; tool errors returned as strings to the model
 - [ ] `agent/provider.ts`: streaming path (`responses.create({ stream: true })`)
-- [ ] `output/stream.ts`: live text writer + tool status lines (name +
-      summarized args); `--no-stream` buffering; `--verbose` full detail
+- [ ] `output/stream.ts`: live text writer + tool status lines (one settled
+      line per call: `› shell: …` → `✓ done` / `✗ failed` + excerpt); tool
+      output hidden by default (model-facing); `--no-stream` buffering;
+      `--verbose` full detail
 - **Tests:** `tools/registry`, `tools/schema` (strict shape),
   `tools/shell` (exit codes, timeout, output cap),
   `agent/agent` with a fake stream (multi-step, errors, iteration exhaustion),
   `output/stream` (`ansis.strip`)
 - **Docs:** update as needed
 - **Acceptance:** multi-step tool runs complete correctly; text streams live;
-  status lines render; `--no-stream`/`--verbose` behave.
+  status lines settle to one line per call; the approval prompt pauses until
+  answered and honors `y`/`n`/`a`; failures show `✗` + snippet;
+  `--no-stream`/`--verbose` behave.
 - **Commit** when green.
 
 ---

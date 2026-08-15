@@ -14,8 +14,8 @@
     "src"
   ],
   "scripts": {
-    "start": "node src/index.ts",
-    "dev": "node --watch src/index.ts",
+    "start": "node --env-file=.env src/index.ts",
+    "dev": "node --watch --env-file=.env src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
