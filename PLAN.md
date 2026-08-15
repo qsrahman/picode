@@ -65,7 +65,7 @@ src/
   index.ts              entry: parse → config → dispatch (one-shot | REPL)
   cli/
     args.ts             node:util.parseArgs; flag/positional definitions
-    commands.ts         slash-command registry (/help /model /mode /clear /tools /exit)
+    commands.ts         slash-command registry (/help /model /mode /clear /reset /tools /exit)
     repl.ts             readline session: history, multiline, keys, Ctrl+C/D
   config/
     schema.ts           zod schemas for config + CLI overrides
@@ -105,7 +105,7 @@ index.ts
   → REPL or one-shot
 
 REPL loop: read input → runTurn(userMsg) → print output
-  /help /model /mode /clear /tools /exit
+  /help /model /mode /clear /reset /tools /exit
 
 runTurn (Phase 2+, streaming):
   input = [...history, {role:'user', content}]
@@ -159,10 +159,11 @@ pcode [prompt]            one-shot when a prompt is given, REPL otherwise
 
 ### Slash commands (REPL)
 
-`/help` `/model` `/mode` `/clear` `/tools` `/exit` — registered incrementally
-as their dependencies land (Phase 1: `/help` `/clear` `/model` `/mode`
-`/exit`, with `/model` `/mode` read-only; Phase 3: `/mode` switching and
-`/tools`).
+`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/exit` — registered
+incrementally as their dependencies land (Phase 1: `/help` `/clear` `/reset`
+`/model` `/mode` `/exit`, with `/model` `/mode` read-only; Phase 3: `/mode`
+switching and `/tools`). `/clear` clears the terminal, `/reset` wipes the
+conversation.
 
 ## 5. Locked design decisions
 
@@ -261,8 +262,8 @@ one-shot and interactive REPL.
 - [x] `output/palette.ts`: fixed palette + `NO_COLOR`/`--no-color`
 - [x] `cli/commands.ts` + `cli/repl.ts`: readline session — persisted
       per-project history, multi-line continuation, Ctrl+C cancels the turn /
-      exits at the prompt, Ctrl+D exits; `/help` `/clear` `/model` `/mode`
-      (read-only) `/exit`
+      exits at the prompt, Ctrl+D exits; `/help` `/clear` `/reset` `/model`
+      `/mode` (read-only) `/exit`
 - [x] `index.ts` dispatch: `--version` / `--help` / one-shot / REPL
 - **Tests:** `cli/args`, `config/*` (merge order, validation),
   `agent/agent` with a fake provider (no network), `output/palette`

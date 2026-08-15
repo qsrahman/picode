@@ -50,11 +50,12 @@ The model is selected with `--model` or the config file.
 
 ### REPL commands
 
-`/help` `/model` `/mode` `/clear` `/tools` `/exit`
+`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/exit`
 
-Available now (Phase 1): `/help` `/clear` `/model` `/mode` (read-only)
-`/exit`. `/tools` and mode switching arrive with the permission engine
-(Phase 3).
+Available now (Phase 1): `/help` `/clear` `/reset` `/model` `/mode`
+(read-only) `/exit`. `/tools` and mode switching arrive with the permission
+engine (Phase 3). `/clear` clears the terminal; `/reset` wipes the current
+conversation.
 
 ## Configuration
 

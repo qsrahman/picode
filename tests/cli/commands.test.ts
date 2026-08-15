@@ -8,7 +8,9 @@ function makeCtx(): SlashContext & { printed: string[] } {
     print: vi.fn((line: string) => {
       printed.push(line)
     }),
-    clearHistory: vi.fn(),
+    dim: vi.fn((s: string) => s),
+    clearScreen: vi.fn(),
+    resetConversation: vi.fn(),
     exit: vi.fn(),
     model: 'gpt-fake',
     mode: 'interactive',
@@ -30,16 +32,29 @@ describe('isSlashCommand', () => {
 })
 
 describe('runSlashCommand', () => {
-  it('prints slash help for /help', () => {
+  it('prints dimmed, alphabetically sorted slash help for /help', () => {
     const ctx = makeCtx()
     runSlashCommand('/help', ctx)
-    expect(ctx.printed.join('\n')).toContain('/exit')
+    expect(ctx.dim).toHaveBeenCalledOnce()
+    const output = ctx.printed.join('\n')
+    const commands = ['/clear', '/exit', '/help', '/model', '/mode', '/reset']
+    const indexes = commands.map((cmd) => output.indexOf(cmd))
+    expect(indexes.every((i) => i >= 0)).toBe(true)
+    expect(indexes).toEqual([...indexes].sort((a, b) => a - b))
   })
 
-  it('clears history for /clear', () => {
+  it('clears the terminal for /clear', () => {
     const ctx = makeCtx()
     runSlashCommand('/clear', ctx)
-    expect(ctx.clearHistory).toHaveBeenCalledOnce()
+    expect(ctx.clearScreen).toHaveBeenCalledOnce()
+    expect(ctx.resetConversation).not.toHaveBeenCalled()
+  })
+
+  it('resets the conversation for /reset', () => {
+    const ctx = makeCtx()
+    runSlashCommand('/reset', ctx)
+    expect(ctx.resetConversation).toHaveBeenCalledOnce()
+    expect(ctx.printed.join('\n')).toContain('conversation reset')
   })
 
   it('prints the active model for /model', () => {

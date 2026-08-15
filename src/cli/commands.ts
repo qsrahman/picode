@@ -2,7 +2,9 @@ import type { Mode } from '../config/schema.ts'
 
 export interface SlashContext {
   print: (line: string) => void
-  clearHistory: () => void
+  dim: (s: string) => string
+  clearScreen: () => void
+  resetConversation: () => void
   exit: () => void
   model: string
   mode: Mode
@@ -13,12 +15,14 @@ export function isSlashCommand(input: string): boolean {
   return trimmed.length > 1 && trimmed.startsWith('/')
 }
 
+// Sorted alphabetically so /help output is predictable at a glance.
 const SLASH_HELP = `Slash commands:
+  /clear   clear the terminal
+  /exit    quit pcode
   /help    show this help
   /model   show the active model
   /mode    show the current permission mode
-  /clear   reset the conversation
-  /exit    quit pcode
+  /reset   reset the conversation
 
 Run pcode --help for CLI flags and options.`
 
@@ -31,11 +35,14 @@ export function runSlashCommand(input: string, ctx: SlashContext): boolean {
 
   switch (cmd) {
     case '/help':
-      ctx.print(SLASH_HELP)
+      ctx.print(ctx.dim(SLASH_HELP))
       return true
     case '/clear':
-      ctx.clearHistory()
-      ctx.print('conversation cleared')
+      ctx.clearScreen()
+      return true
+    case '/reset':
+      ctx.resetConversation()
+      ctx.print('conversation reset')
       return true
     case '/model':
       ctx.print(`model: ${ctx.model}`)

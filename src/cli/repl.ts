@@ -133,9 +133,17 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     })
   }
 
+  // Clear the visible screen and home the cursor; only meaningful on a real
+  // terminal, where the next prompt re-renders at the top.
+  const CLEAR_SCREEN = '\x1b[2J\x1b[H'
+
   const ctx = {
     print: (line: string) => process.stdout.write(`${line}\n`),
-    clearHistory: () => {
+    dim: (s: string) => palette.promptMuted(s),
+    clearScreen: () => {
+      if (isTerminal) process.stdout.write(CLEAR_SCREEN)
+    },
+    resetConversation: () => {
       conversation = []
       history = []
       saveHistory(opts.historyFile, [])
