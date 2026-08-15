@@ -120,7 +120,7 @@ runTurn (Phase 2+, streaming):
 
 ```jsonc
 {
-  "model": "gpt-5.6",
+  "model": "gpt-5.6",                    // OPENAI_DEFAULT_MODEL env overrides
   "baseURL": "https://api.openai.com/v1",  // OPENAI_BASE_URL env overrides
   "apiKeyEnv": "OPENAI_API_KEY",          // key read from this env var
   "instructions": "…coding agent system prompt…",
@@ -142,11 +142,12 @@ runTurn (Phase 2+, streaming):
 
 Merge order: `defaults ← ~/.config/pcode/config.json ← ./pcode.json ← CLI
 flags`. Resolution: `--config <path>` → `./pcode.json` →
-`~/.config/pcode/config.json`. The environment layers on top: the API key is
-read from `apiKeyEnv` (default `OPENAI_API_KEY`), and `OPENAI_BASE_URL`
-overrides `baseURL`. A `.env` file in the working directory is loaded at
-startup (dotenv semantics: comments, quotes, `export`; existing variables
-win).
+`~/.config/pcode/config.json`. The environment layers on top of config files
+but below CLI flags: the API key is read from `apiKeyEnv` (default
+`OPENAI_API_KEY`), `OPENAI_BASE_URL` overrides `baseURL`, and
+`OPENAI_DEFAULT_MODEL` overrides `model`. A `.env` file in the working
+directory is loaded at startup (dotenv semantics: comments, quotes, `export`;
+existing variables win).
 
 ### CLI surface
 

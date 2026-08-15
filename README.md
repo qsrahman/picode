@@ -64,7 +64,7 @@ Config is merged in this order (later wins):
 2. `~/.config/pcode/config.json` (user-level)
 3. `./pcode.json` (project-level, checked in to share with your team)
 4. CLI flags
-5. Environment: `OPENAI_BASE_URL` overrides `baseURL`; the API key is read from `apiKeyEnv` (default `OPENAI_API_KEY`)
+5. Environment: `OPENAI_BASE_URL` overrides `baseURL`; `OPENAI_DEFAULT_MODEL` overrides `model` (CLI flags still win); the API key is read from `apiKeyEnv` (default `OPENAI_API_KEY`)
 
 ```jsonc
 {
@@ -94,10 +94,12 @@ credentials out of your shell (see `.env.example`):
 
 ```
 OPENAI_API_KEY=sk-...
-# OPENAI_BASE_URL=https://api.openai.com/v1   # optional: override the endpoint
+# OPENAI_DEFAULT_MODEL=gemma4:cloud     # optional: model used when --model is not given
+# OPENAI_BASE_URL=http://localhost:11434/v1   # optional: override the endpoint
 ```
 
-Variables already exported in your shell take precedence over `.env`.
+Variables already exported in your shell take precedence over `.env`, and an
+explicit `--model` flag beats `OPENAI_DEFAULT_MODEL`.
 
 ## Permission model
 

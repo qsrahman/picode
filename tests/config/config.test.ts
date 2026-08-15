@@ -150,4 +150,31 @@ describe('resolveConfig', () => {
     )
     expect(config.baseURL).toBe('https://project.example/v1')
   })
+
+  it('lets OPENAI_DEFAULT_MODEL from the env override config files', () => {
+    writeFileSync(projectPath, JSON.stringify({ model: 'from-project' }))
+    const config = resolveConfig(
+      {},
+      {
+        cwd: dir,
+        userConfigPath: userPath,
+        projectConfigPath: projectPath,
+        env: { OPENAI_DEFAULT_MODEL: 'from-env' },
+      },
+    )
+    expect(config.model).toBe('from-env')
+  })
+
+  it('lets the --model CLI flag win over OPENAI_DEFAULT_MODEL', () => {
+    const config = resolveConfig(
+      { model: 'from-cli' },
+      {
+        cwd: dir,
+        userConfigPath: userPath,
+        projectConfigPath: projectPath,
+        env: { OPENAI_DEFAULT_MODEL: 'from-env' },
+      },
+    )
+    expect(config.model).toBe('from-cli')
+  })
 })

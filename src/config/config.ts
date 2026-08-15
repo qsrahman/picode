@@ -99,11 +99,12 @@ export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions 
     merged = { ...merged, ...parsed.data }
   }
 
+  // Environment overrides beat config files but yield to explicit CLI flags.
+  // The API key already follows apiKeyEnv (default OPENAI_API_KEY).
+  if (env.OPENAI_BASE_URL) merged.baseURL = env.OPENAI_BASE_URL
+  if (env.OPENAI_DEFAULT_MODEL) merged.model = env.OPENAI_DEFAULT_MODEL
   if (args.model !== undefined) merged.model = args.model
   if (args.mode !== undefined) merged.mode = args.mode
-  // OPENAI_BASE_URL is the standard OpenAI-compatible escape hatch: when set,
-  // it wins over every config layer (the API key already follows apiKeyEnv).
-  if (env.OPENAI_BASE_URL) merged.baseURL = env.OPENAI_BASE_URL
 
   merged.root = resolve(cwd, merged.root ?? cwd)
   merged.additionalDirs = (merged.additionalDirs ?? []).map((dir) => resolve(cwd, dir))
