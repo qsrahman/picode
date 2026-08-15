@@ -423,10 +423,10 @@ through the same permission engine.
 
 ---
 
-### Phase 5 — Todo tracking, session persistence, context, parallelism ⚪ not started
+### Phase 5 — Todo tracking tool ⚪ not started
 
-**Goal:** the agent plans complex work into tracked subtasks and keeps them
-synchronized across tool rounds; long-running sessions survive restarts.
+**Goal:** the agent can plan complex work into tracked subtasks and keep them
+synchronized across tool rounds.
 
 #### Todo tool (task planning & tracking)
 
@@ -451,17 +451,38 @@ synchronized across tool rounds; long-running sessions survive restarts.
   progress as it works, and the status line stays in sync; the snapshot
   survives across REPL turns; `/reset` clears it.
 
-#### Existing stretch items
+---
+
+### Phase 6 — Session persistence, context trimming, parallelism ⚪ not started
+
+**Goal:** long-running sessions survive restarts; token growth is bounded;
+tool calls can execute in parallel when safe.
+
+#### Session persistence & context trimming
 
 - [ ] Session persistence / `--resume` (distinct from readline history); the
       todo store rides along
 - [ ] Context trimming: token-budget compaction of client-side history
-- [ ] Parallel tool execution (`Promise.all`) in the agent loop
+      (sliding window or summarization strategy TBD)
 - [ ] Persist `always` approvals to config (allowlist)
+
+#### Parallel tool execution
+
+- [ ] Agent loop: detect tool call independence (heuristic: separate
+      arguments), execute with `Promise.all` instead of sequential
+- [ ] Status lines: one per tool, settle independently
+- [ ] Ordering: respect model-suggested order in output
+
+#### Testing & docs
+
 - **Tests:** history serialize/restore, trim behavior, parallel execution,
   allowlist round-trip
-- **Docs:** update as needed
-- **Commit** when green.
+- **Docs:** update this file, `README.md`, and `AGENTS.md`
+- **Acceptance:** long sessions don't grow unbounded; client can resume with
+  `/resume` (history + todos + conversation intact); independent tool calls
+  execute in parallel with clean status-line settle order.
+- **Commit:** when all green.
+
 
 ---
 
