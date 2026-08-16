@@ -78,7 +78,8 @@ function defaultDecision(category: 'shell' | 'edit' | 'read', patterns: string[]
     return blocked ? 'deny' : 'allow'
   }
   if (category === 'shell') {
-    const command = typeof patterns[0] === 'string' ? parseToolPattern(patterns[0])?.operand ?? '' : ''
+    const command =
+      typeof patterns[0] === 'string' ? (parseToolPattern(patterns[0])?.operand ?? '') : ''
     return isReadonlyCommand(command) ? 'allow' : 'ask'
   }
   return 'ask'
@@ -152,7 +153,11 @@ export function denyReason(call: ToolCall, rules: Permission, mode: Mode): strin
 // Tools the policy would always deny in the current mode are hidden from the
 // model's toolset; everything else stays visible (the loop's authorize() is the
 // hard backstop for calls that are denied only for specific arguments).
-export function toolsetForModel(registry: ToolRegistry, rules: Permission, mode: Mode): ToolDefinition[] {
+export function toolsetForModel(
+  registry: ToolRegistry,
+  rules: Permission,
+  mode: Mode,
+): ToolDefinition[] {
   return registry.descriptors().filter((tool) => {
     const decision = evaluateCall({
       call: { callId: '', name: tool.name, args: {} },

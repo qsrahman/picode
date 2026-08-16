@@ -19,17 +19,20 @@ async function repo(): Promise<string> {
 describe('git tools', () => {
   it('reports status, log, show, and diff', async () => {
     const dir = await repo()
-    const t = Object.fromEntries(createGitTools(dir).map((x) => [x.name, x]))
+    const tools = createGitTools(dir)
+    const exec = (name: string, args: Record<string, unknown>) =>
+      tools.find((x) => x.name === name)!.execute(args)
 
-    expect((await t.git_status.execute({})).startsWith('## ')).toBe(true)
-    expect(await t.git_log.execute({})).toContain('first')
-    expect(await t.git_show.execute({ ref: 'HEAD' })).toContain('first')
-    expect((await t.git_diff.execute({})).trim()).toBe('')
+    expect((await exec('git_status', {})).startsWith('## ')).toBe(true)
+    expect(await exec('git_log', {})).toContain('first')
+    expect(await exec('git_show', { ref: 'HEAD' })).toContain('first')
+    expect((await exec('git_diff', {})).trim()).toBe('')
   })
 
   it('returns stderr text on failure instead of throwing', async () => {
     const dir = await repo()
-    const t = Object.fromEntries(createGitTools(dir).map((x) => [x.name, x]))
-    expect((await t.git_show.execute({ ref: 'nope' })).toLowerCase()).toContain('not')
+    const tools = createGitTools(dir)
+    const out = await tools.find((x) => x.name === 'git_show')!.execute({ ref: 'nope' })
+    expect(out.toLowerCase()).toContain('not')
   })
 })

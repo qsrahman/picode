@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { shellBreakers, destructiveBreaker, escapingBreaker } from '../../src/permissions/breaker.ts'
+import {
+  shellBreakers,
+  destructiveBreaker,
+  escapingBreaker,
+} from '../../src/permissions/breaker.ts'
 import { isReadonlyCommand, READONLY_SHELL } from '../../src/permissions/readonly.ts'
 import { modeIndicator } from '../../src/permissions/modes.ts'
 

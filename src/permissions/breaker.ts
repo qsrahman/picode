@@ -5,8 +5,7 @@ import { splitCommand } from './rules.ts'
 // escaping command is forced to `ask` rather than silently auto-approved.
 export type Breaker = (command: string) => boolean
 
-const DESTRUCTIVE =
-  /\b(?:rm\s+-rf|rm\s+-fr|mkfs|dd\s+if=|:\(\)\s*\{|chmod\s+-R\s+0|format\s)\b/
+const DESTRUCTIVE = /\b(?:rm\s+-rf|rm\s+-fr|mkfs|dd\s+if=|:\(\)\s*\{|chmod\s+-R\s+0|format\s)\b/
 const ESCAPING = /\b(?:sudo|su\s)\b/
 
 export function destructiveBreaker(command: string): boolean {

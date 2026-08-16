@@ -60,7 +60,10 @@ export function createFsTools(ctx: FsToolContext): Tool[] {
       execute: async (args) => {
         const { path } = args as { path: string }
         const entries = await readdir(locate(path), { withFileTypes: true })
-        return entries.map((e) => (e.isDirectory() ? `${e.name}/` : e.name)).sort().join('\n')
+        return entries
+          .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
+          .sort()
+          .join('\n')
       },
     },
     {

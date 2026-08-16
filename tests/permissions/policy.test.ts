@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultPermission, type Permission } from '../../src/config/schema.ts'
 import type { ToolCall } from '../../src/tools/types.ts'
-import { ApprovalCache, denyReason, evaluateCall, toolsetForModel } from '../../src/permissions/policy.ts'
+import {
+  ApprovalCache,
+  denyReason,
+  evaluateCall,
+  toolsetForModel,
+} from '../../src/permissions/policy.ts'
 import { ToolRegistry } from '../../src/tools/registry.ts'
 import { createShellTool } from '../../src/tools/shell.ts'
 
@@ -14,15 +19,20 @@ function withRules(rules: Partial<Permission>): Permission {
   return { ...defaultPermission, ...rules }
 }
 
-function evalCall(c: ToolCall, rules: Permission, mode: 'interactive' | 'auto' | 'plan', isInteractive = true) {
+function evalCall(
+  c: ToolCall,
+  rules: Permission,
+  mode: 'interactive' | 'auto' | 'plan',
+  isInteractive = true,
+) {
   return evaluateCall({ call: c, rules, mode, isInteractive })
 }
 
 describe('evaluateCall — shell', () => {
   it('allows read-only commands without prompting', () => {
-    expect(evalCall(call('run_command', { command: 'ls -F' }), defaultPermission, 'interactive')).toBe(
-      'allow',
-    )
+    expect(
+      evalCall(call('run_command', { command: 'ls -F' }), defaultPermission, 'interactive'),
+    ).toBe('allow')
   })
 
   it('prompts for unknown/non-read-only commands', () => {
@@ -32,9 +42,9 @@ describe('evaluateCall — shell', () => {
   })
 
   it('forces a prompt on destructive commands even in auto mode', () => {
-    expect(evalCall(call('run_command', { command: 'rm -rf /tmp' }), defaultPermission, 'auto')).toBe(
-      'ask',
-    )
+    expect(
+      evalCall(call('run_command', { command: 'rm -rf /tmp' }), defaultPermission, 'auto'),
+    ).toBe('ask')
   })
 
   it('denies destructive commands when a deny rule matches', () => {
@@ -50,14 +60,21 @@ describe('evaluateCall — shell', () => {
 
   it('auto-denies a prompt when non-interactive', () => {
     expect(
-      evalCall(call('run_command', { command: 'npm install' }), defaultPermission, 'interactive', false),
+      evalCall(
+        call('run_command', { command: 'npm install' }),
+        defaultPermission,
+        'interactive',
+        false,
+      ),
     ).toBe('deny')
   })
 })
 
 describe('evaluateCall — mode', () => {
   it('denies all writes in plan mode', () => {
-    expect(evalCall(call('run_command', { command: 'ls' }), defaultPermission, 'plan')).toBe('allow')
+    expect(evalCall(call('run_command', { command: 'ls' }), defaultPermission, 'plan')).toBe(
+      'allow',
+    )
     expect(evalCall(call('run_command', { command: 'rm -rf /' }), defaultPermission, 'plan')).toBe(
       'deny',
     )
@@ -77,9 +94,9 @@ describe('evaluateCall — read defaults', () => {
   })
 
   it('allows other reads by default', () => {
-    expect(evalCall(call('read_file', { path: 'src/a.ts' }), defaultPermission, 'interactive')).toBe(
-      'allow',
-    )
+    expect(
+      evalCall(call('read_file', { path: 'src/a.ts' }), defaultPermission, 'interactive'),
+    ).toBe('allow')
   })
 })
 
@@ -103,7 +120,9 @@ describe('ApprovalCache', () => {
     const rules = withRules({ shell: { allow: [], ask: [], deny: ['Bash(rm -rf *)'] } })
     const cache = new ApprovalCache()
     cache.add('Bash(rm -rf /)')
-    expect(evalCall(call('run_command', { command: 'rm -rf /' }), rules, 'interactive')).toBe('deny')
+    expect(evalCall(call('run_command', { command: 'rm -rf /' }), rules, 'interactive')).toBe(
+      'deny',
+    )
   })
 })
 
@@ -111,8 +130,12 @@ describe('toolsetForModel', () => {
   it('hides tools the policy denies in the current mode', () => {
     const reg = new ToolRegistry()
     reg.register(createShellTool({ cwd: process.cwd(), timeout: 0 }))
-    expect(toolsetForModel(reg, defaultPermission, 'auto').map((t) => t.name)).toContain('run_command')
-    expect(toolsetForModel(reg, defaultPermission, 'plan').map((t) => t.name)).not.toContain('run_command')
+    expect(toolsetForModel(reg, defaultPermission, 'auto').map((t) => t.name)).toContain(
+      'run_command',
+    )
+    expect(toolsetForModel(reg, defaultPermission, 'plan').map((t) => t.name)).not.toContain(
+      'run_command',
+    )
   })
 })
 
@@ -131,6 +154,8 @@ describe('denyReason', () => {
   })
 
   it('returns undefined for a non-interactive ask denial', () => {
-    expect(denyReason(call('run_command', { command: 'ls' }), defaultPermission, 'interactive')).toBeUndefined()
+    expect(
+      denyReason(call('run_command', { command: 'ls' }), defaultPermission, 'interactive'),
+    ).toBeUndefined()
   })
 })

@@ -8,32 +8,32 @@ async function tmp(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'pcode-fs-'))
 }
 
-function tools(root: string) {
-  return Object.fromEntries(createFsTools({ root, additionalDirs: [] }).map((t) => [t.name, t]))
-}
-
 describe('fs tools', () => {
   it('reads, writes, lists, and stats confined files', async () => {
     const root = await tmp()
-    const t = tools(root)
+    const list = createFsTools({ root, additionalDirs: [] })
+    const exec = (name: string, args: Record<string, unknown>) =>
+      list.find((x) => x.name === name)!.execute(args)
     await writeFile(join(root, 'a.txt'), 'hello')
 
-    expect(await t.read_file.execute({ path: 'a.txt' })).toBe('hello')
+    expect(await exec('read_file', { path: 'a.txt' })).toBe('hello')
 
-    expect(await t.write_file.execute({ path: 'sub/b.txt', content: 'x' })).toBe(
+    expect(await exec('write_file', { path: 'sub/b.txt', content: 'x' })).toBe(
       'wrote sub/b.txt (1 bytes)',
     )
     expect(await readFile(join(root, 'sub/b.txt'), 'utf8')).toBe('x')
 
-    expect((await t.list_dir.execute({ path: '.' })).split('\n').sort()).toEqual(['a.txt', 'sub/'])
+    expect((await exec('list_dir', { path: '.' })).split('\n').sort()).toEqual(['a.txt', 'sub/'])
 
-    const info = JSON.parse(await t.stat.execute({ path: 'a.txt' })) as { type: string }
+    const info = JSON.parse(await exec('stat', { path: 'a.txt' })) as { type: string }
     expect(info.type).toBe('file')
   })
 
   it('rejects paths outside the workspace', async () => {
     const root = await tmp()
-    const t = tools(root)
-    await expect(t.read_file.execute({ path: '../escape.txt' })).rejects.toThrow(/workspace/)
+    const list = createFsTools({ root, additionalDirs: [] })
+    await expect(
+      list.find((x) => x.name === 'read_file')!.execute({ path: '../escape.txt' }),
+    ).rejects.toThrow(/workspace/)
   })
 })

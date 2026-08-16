@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { isCommand, runCommand, type CommandContext, type ToolStatus } from '../../src/cli/commands.ts'
+import {
+  isCommand,
+  runCommand,
+  type CommandContext,
+  type ToolStatus,
+} from '../../src/cli/commands.ts'
 
 function makeCtx(): CommandContext & { printed: string[] } {
   const printed: string[] = []
@@ -15,13 +20,11 @@ function makeCtx(): CommandContext & { printed: string[] } {
     model: 'gpt-fake',
     mode: 'interactive',
     setMode: vi.fn(),
-    toolStatus: vi.fn(
-      (): ToolStatus[] => [
-        { name: 'read_file', status: 'allow' },
-        { name: 'write_file', status: 'ask' },
-        { name: 'run_command', status: 'deny' },
-      ],
-    ),
+    toolStatus: vi.fn((): ToolStatus[] => [
+      { name: 'read_file', status: 'allow' },
+      { name: 'write_file', status: 'ask' },
+      { name: 'run_command', status: 'deny' },
+    ]),
     printed,
   }
 }

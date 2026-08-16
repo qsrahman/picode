@@ -101,7 +101,9 @@ export function evaluatePattern(toolPattern: string, rules: Permission): Decisio
     list.some((rule) => {
       const rp = parseToolPattern(rule)
       if (!rp || rp.kind !== parsed.kind) return false
-      return isPath ? matchPathGlob(rp.operand, parsed.operand) : matchGlob(rp.operand, parsed.operand)
+      return isPath
+        ? matchPathGlob(rp.operand, parsed.operand)
+        : matchGlob(rp.operand, parsed.operand)
     })
   if (matches(category.deny)) return 'deny'
   if (matches(category.ask)) return 'ask'
