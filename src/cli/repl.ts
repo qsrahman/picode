@@ -1,6 +1,6 @@
 import * as readline from 'node:readline'
 import type { CliOptions } from './args.ts'
-import type { Config } from '../config/schema.ts'
+import type { Config, Mode } from '../config/schema.ts'
 import type { Provider, ProviderItem } from '../agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from '../agent/agent.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
@@ -161,6 +161,19 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     },
     model: provider.model,
     mode: config.mode,
+    setMode: (mode: Mode) => {
+      config.mode = mode
+    },
+    toolStatus: () =>
+      opts.registry.descriptors().map((t) => ({
+        name: t.name,
+        status: evaluateCall({
+          call: { callId: '', name: t.name, args: {} },
+          rules: config.permission,
+          mode: config.mode,
+          isInteractive: true,
+        }),
+      })),
   }
 
   const approvals = new ApprovalCache()
@@ -238,6 +251,12 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
         palette.promptMuted(excerptOf(result.output)),
       )
     }
+  }
+
+  if (isTerminal) {
+    process.stdout.write(
+      `${palette.tool('pcode')} · ${provider.model} · ${config.mode}\n${palette.promptMuted('type /help for commands')}\n\n`,
+    )
   }
 
   while (!stopRequested) {
