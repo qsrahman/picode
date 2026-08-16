@@ -1,4 +1,16 @@
 {
   "model": "gemma4:cloud",
-  "baseURL": "http://localhost:11434/v1"
+  "baseURL": "http://localhost:11434/v1",
+  "permission": {
+    "shell": {
+      "allow": ["Bash(pnpm test *)", "Bash(pnpm typecheck)", "Bash(pnpm format:check)"],
+      "deny": ["Bash(rm -rf *)"]
+    },
+    "edit": {
+      "allow": ["Edit(src/**)", "Edit(tests/**)", "Edit(*.md)"]
+    },
+    "read": {
+      "deny": ["Read(.env)"]
+    }
+  }
 }

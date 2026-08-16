@@ -191,10 +191,12 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       process.stdout.write(`  ${palette.prompt('Run? (y/n/a)')} `)
       awaitingApproval = true
       approvalWaiter = (line) => {
-        // Erase the 3 lines the prompt occupies (`Run? (y/n/a) …`,
-        // `'a' approves: …`, and this answer line) so resume/settle picks up
-        // right below the frozen status line pauseStatus() left in place.
-        process.stdout.write('\x1b[1A\r\x1b[2K'.repeat(3))
+        // Erase the prompt's 3 lines (`Run? (y/n/a) …`, `'a' approves: …`,
+        // and this answer line) *and* the frozen pre-approval status line
+        // pauseStatus() left above them — otherwise the tool summary ends up
+        // printed twice: once frozen, once settled. Landing back at that
+        // line's start lets resume/settle redraw a single final line there.
+        process.stdout.write('\x1b[1A\r\x1b[2K'.repeat(4))
         resolve(line.trim().toLowerCase())
       }
     })
@@ -211,7 +213,15 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       isInteractive: isTerminal,
       approvals,
     })
-    if (decision === 'allow') return true
+    if (decision === 'allow') {
+      // Show the same running/settling status line an `ask` call gets, so an
+      // auto-allowed call (readonly shell, an allow rule, `auto` mode) isn't
+      // silently invisible — onToolResult()'s endStatus() is a no-op unless
+      // a status line is active.
+      writer.startStatus(summaryOf(call, opts.args.verbose))
+      toolSettled = true
+      return true
+    }
     if (decision === 'deny') {
       const why = denyReason(call, config.permission, config.mode)
       const suffix = why ? palette.promptMuted(` (${why})`) : ''
