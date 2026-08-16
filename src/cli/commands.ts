@@ -1,5 +1,6 @@
 import { modes, type Mode } from '../config/schema.ts'
 import type { Decision } from '../permissions/rules.ts'
+import { VERSION } from '../version.ts'
 
 const DECISION_LABEL: Record<Decision, string> = {
   allow: 'allow',
@@ -38,6 +39,7 @@ const COMMAND_HELP = `Commands:
   /model   show the active model
   /reset   reset the conversation
   /tools   list tools and their effective permission in the current mode
+  /version show the picode version
 
 Run picode --help for CLI flags and options.`
 
@@ -62,6 +64,10 @@ export function runCommand(input: string, ctx: CommandContext): boolean {
       return true
     case '/model':
       ctx.print(`model: ${ctx.model}`)
+      ctx.print('')
+      return true
+    case '/version':
+      ctx.print(`picode ${VERSION}`)
       ctx.print('')
       return true
     case '/mode':

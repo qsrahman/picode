@@ -70,7 +70,7 @@ src/
   errors.ts             shared error classes (CliError, ConfigError) + messageOf helper
   cli/
     args.ts             node:util.parseArgs; flag/positional definitions
-    commands.ts         slash-command registry (/help /model /mode /clear /reset /tools /exit)
+    commands.ts         slash-command registry (/help /model /mode /clear /reset /tools /version /exit)
     history.ts          loadHistory / saveHistory / HISTORY_SIZE
     repl.ts             readline session: history, multiline, keys, Ctrl+C/D;
                         wires the permission engine into the loop via authorize()
@@ -114,7 +114,7 @@ index.ts
   → REPL or one-shot
 
 REPL loop: read input → runTurn(userMsg) → print output
-  /help /model /mode /clear /reset /tools /exit
+  /help /model /mode /clear /reset /tools /version /exit
 
 runTurn (Phase 2+, streaming):
   input = [...history, {role:'user', content}]
@@ -178,10 +178,11 @@ picode [prompt]            one-shot when a prompt is given, REPL otherwise
 
 ### Slash commands (REPL)
 
-`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/exit` — registered
-incrementally as their dependencies land (Phase 1: `/help` `/clear` `/reset`
-`/model` `/mode` `/exit`, with `/model` `/mode` read-only; Phase 3: `/mode`
-switching and `/tools`). `/clear` clears the terminal, `/reset` wipes the
+`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/version` `/exit` —
+registered incrementally as their dependencies land (Phase 1: `/help`
+`/clear` `/reset` `/model` `/mode` `/exit`, with `/model` `/mode` read-only;
+Phase 3: `/mode` switching and `/tools`; `/version` added later). `/clear`
+clears the terminal, `/reset` wipes the
 conversation.
 
 ## 5. Locked design decisions

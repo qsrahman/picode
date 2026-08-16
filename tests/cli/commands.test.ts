@@ -6,6 +6,7 @@ import {
   type CommandContext,
   type ToolStatus,
 } from '../../src/cli/commands.ts'
+import { VERSION } from '../../src/version.ts'
 
 function makeCtx(): CommandContext & { printed: string[] } {
   const printed: string[] = []
@@ -48,7 +49,16 @@ describe('runCommand', () => {
     runCommand('/help', ctx)
     expect(ctx.dim).toHaveBeenCalledOnce()
     const output = ctx.printed.join('\n')
-    for (const cmd of ['/clear', '/exit', '/help', '/model', '/mode', '/reset', '/tools']) {
+    for (const cmd of [
+      '/clear',
+      '/exit',
+      '/help',
+      '/model',
+      '/mode',
+      '/reset',
+      '/tools',
+      '/version',
+    ]) {
       expect(output).toContain(cmd)
     }
   })
@@ -71,6 +81,12 @@ describe('runCommand', () => {
     const ctx = makeCtx()
     runCommand('/model', ctx)
     expect(ctx.printed.join('\n')).toContain('gpt-fake')
+  })
+
+  it('prints the version for /version', () => {
+    const ctx = makeCtx()
+    runCommand('/version', ctx)
+    expect(ctx.printed.join('\n')).toContain(`picode ${VERSION}`)
   })
 
   it('prints the current mode for /mode', () => {

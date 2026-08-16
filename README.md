@@ -118,12 +118,13 @@ engine:
 
 ### REPL commands
 
-`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/exit`
+`/help` `/model` `/mode` `/clear` `/reset` `/tools` `/version` `/exit`
 
 - `/mode` — show the current mode, or switch: `/mode auto` / `/mode plan` /
   `/mode interactive`
 - `/tools` — list every tool with its effective permission (`allow` / `ask` /
   `deny`) in the current mode
+- `/version` — show the running `picode` version
 - `/clear` clears the terminal; `/reset` wipes the current conversation
 
 ## Configuration
