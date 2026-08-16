@@ -178,4 +178,52 @@ describe('resolveConfig', () => {
     )
     expect(config.model).toBe('from-cli')
   })
+
+  it('ships empty permission rules by default', () => {
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission).toEqual({
+      shell: { allow: [], ask: [], deny: [] },
+      edit: { allow: [], ask: [], deny: [] },
+      read: { allow: [], ask: [], deny: [] },
+    })
+  })
+
+  it('lets a project config replace the permission block wholesale', () => {
+    writeFileSync(
+      projectPath,
+      JSON.stringify({
+        permission: { shell: { allow: ['Bash(pnpm test *)'], ask: [], deny: [] } },
+      }),
+    )
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission.shell.allow).toEqual(['Bash(pnpm test *)'])
+    expect(config.permission.edit).toEqual({ allow: [], ask: [], deny: [] })
+  })
+
+  it('merges a partial rule list without wiping the others', () => {
+    writeFileSync(
+      projectPath,
+      JSON.stringify({ permission: { shell: { allow: ['Bash(pnpm test *)'] } } }),
+    )
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission.shell.allow).toEqual(['Bash(pnpm test *)'])
+    expect(config.permission.shell.ask).toEqual([])
+    expect(config.permission.shell.deny).toEqual([])
+  })
+
+  it('rejects a malformed permission rule list', () => {
+    writeFileSync(projectPath, JSON.stringify({ permission: { shell: { allow: 'not-an-array' } } }))
+    expect(() =>
+      resolveConfig({}, { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath }),
+    ).toThrow(/Invalid config/)
+  })
 })

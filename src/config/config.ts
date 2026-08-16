@@ -3,7 +3,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import type { Mode } from './schema.ts'
-import { configSchema, type Config } from './schema.ts'
+import { configSchema, defaultPermission, fileConfigSchema, type Config } from './schema.ts'
 import { ConfigError, messageOf } from '../errors.ts'
 
 export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
@@ -13,6 +13,7 @@ export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
   instructions: '',
   additionalDirs: [],
   mode: 'interactive',
+  permission: defaultPermission,
   maxTokens: 8192,
   maxRetries: 3,
   toolTimeout: 30000,
@@ -34,6 +35,19 @@ export interface ConfigOverrides {
 interface ConfigFile {
   path: string
   data: Record<string, unknown>
+}
+
+// File rules override defaults per list, so a config that sets only `allow`
+// keeps the default `ask`/`deny`.
+function mergeToolRules(
+  base: { allow: string[]; ask: string[]; deny: string[] },
+  override?: Partial<{ allow: string[]; ask: string[]; deny: string[] }>,
+): { allow: string[]; ask: string[]; deny: string[] } {
+  return {
+    allow: override?.allow ?? base.allow,
+    ask: override?.ask ?? base.ask,
+    deny: override?.deny ?? base.deny,
+  }
 }
 
 function readConfigFile(path: string, required: boolean): ConfigFile | null {
@@ -81,14 +95,26 @@ export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions 
   let merged: Partial<Config> = { ...DEFAULT_CONFIG }
   for (const source of sources) {
     if (source === null) continue
-    const parsed = configSchema.partial().safeParse(source.data)
+    const parsed = fileConfigSchema.safeParse(source.data)
     if (!parsed.success) {
       const issue = parsed.error.issues[0]
       throw new ConfigError(
         `Invalid config <${source.path}>: ${issue ? issue.message : 'unknown error'}`,
       )
     }
-    merged = { ...merged, ...parsed.data }
+    const prevPermission = merged.permission!
+    const { permission: filePerm, ...fileRest } = parsed.data
+    merged = { ...merged, ...fileRest }
+    // Permission is the only nested config block, so a file may set a single
+    // category or even a single rule list without wiping the rest of the
+    // defaults.
+    if (filePerm) {
+      merged.permission = {
+        shell: mergeToolRules(prevPermission.shell, filePerm.shell),
+        edit: mergeToolRules(prevPermission.edit, filePerm.edit),
+        read: mergeToolRules(prevPermission.read, filePerm.read),
+      }
+    }
   }
 
   // Environment overrides beat config files but yield to explicit CLI flags.
