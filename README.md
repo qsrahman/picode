@@ -264,8 +264,15 @@ pnpm format:check    # prettier --check (gates CI)
 `pnpm test:live` (`scripts/live-e2e.py`) drives the real CLI against the
 configured model (`.env` key + `picode.json` model/base URL) and asserts the
 CLI output — tool status lines, streamed text, and permission prompts — stays
-clean (no clobbering) and that exit codes track policy. It runs model-dependent
-REPL flows under a pseudo-terminal via `script`; use `--quick` to skip them and
-`--keep` to retain the captured transcripts in `.live/`.
+clean (no clobbering) and that exit codes track policy. Coverage spans every
+built-in tool (`read_file`/`write_file`/`edit_file`/`stat`, `run_command`,
+`git_status`, `web_search`/`web_fetch`, `run_agent`, `todo`), the permission
+engine (`allow`/`ask`/`deny`, `interactive`/`auto`/`plan`, the `a`
+always-allow answer, a custom `--config`), and every REPL slash command —
+including a regression test that a `run_agent` sub-agent gets its own
+isolated `todo` checklist rather than sharing the parent's. It runs
+model-dependent REPL flows under a pseudo-terminal via `script`; use
+`--quick` to skip them and `--keep` to retain the captured transcripts in
+`.live/`.
 
 Developer guide: [`AGENTS.md`](./AGENTS.md)
