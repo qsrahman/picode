@@ -4,6 +4,14 @@
   "description": "Model-agnostic AI coding agent built on the OpenAI Responses API",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qsrahman/picode.git"
+  },
+  "homepage": "https://github.com/qsrahman/picode#readme",
+  "bugs": {
+    "url": "https://github.com/qsrahman/picode/issues"
+  },
   "engines": {
     "node": ">=26.0.0"
   },
