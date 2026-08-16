@@ -108,3 +108,18 @@ export function evaluatePattern(toolPattern: string, rules: Permission): Decisio
   if (matches(category.allow)) return 'allow'
   return null
 }
+
+// Return the first literal rule in a list that matches the call pattern, for
+// surfacing which rule fired (prompt preview / denial feedback).
+export function matchRuleInList(toolPattern: string, list: string[]): string | null {
+  const parsed = parseToolPattern(toolPattern)
+  if (!parsed) return null
+  const isPath = parsed.kind !== 'shell'
+  for (const rule of list) {
+    const rp = parseToolPattern(rule)
+    if (!rp || rp.kind !== parsed.kind) continue
+    if (isPath ? matchPathGlob(rp.operand, parsed.operand) : matchGlob(rp.operand, parsed.operand))
+      return rule
+  }
+  return null
+}

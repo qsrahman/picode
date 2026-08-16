@@ -46,7 +46,9 @@ export interface EvaluateOptions {
   approvals?: ApprovalCache
 }
 
-function classify(call: ToolCall): { category: 'shell' | 'edit' | 'read'; patterns: string[] } | null {
+export function classifyCall(
+  call: ToolCall,
+): { category: 'shell' | 'edit' | 'read'; patterns: string[] } | null {
   const meta = TOOL_META[call.name]
   if (!meta) return null
   const operand = typeof call.args[meta.key] === 'string' ? (call.args[meta.key] as string) : ''
@@ -97,7 +99,7 @@ function finalize(
 }
 
 export function evaluateCall(opts: EvaluateOptions): Decision {
-  const classified = classify(opts.call)
+  const classified = classifyCall(opts.call)
   // Unmapped tool: deny in plan, otherwise ask (gated).
   const category: 'shell' | 'edit' | 'read' = classified?.category ?? 'edit'
   const patterns = classified?.patterns ?? []
