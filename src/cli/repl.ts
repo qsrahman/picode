@@ -11,7 +11,7 @@ import { StreamWriter } from '../utils/stream.ts'
 import { isCommand, runCommand } from './commands.ts'
 import { messageOf } from '../errors.ts'
 import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
-import { ApprovalCache, denyReason, evaluateCall } from '../permissions/policy.ts'
+import { type ApprovalCache, denyReason, evaluateCall } from '../permissions/policy.ts'
 import { promptForDecision, summaryOf } from '../permissions/prompt.ts'
 import { modeIndicator } from '../permissions/modes.ts'
 
@@ -23,6 +23,7 @@ export interface ReplOptions {
   args: CliOptions
   registry: ToolRegistry
   tools: ToolDefinition[]
+  approvals: ApprovalCache
 }
 
 // A submitted line continues onto the next prompt when it ends in a backslash
@@ -178,7 +179,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       })),
   }
 
-  const approvals = new ApprovalCache()
+  const approvals = opts.approvals
   // Set when a tool status line has started this turn; onText uses it to
   // separate the settled status line from the final answer text.
   let toolSettled = false

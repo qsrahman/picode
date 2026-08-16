@@ -200,6 +200,37 @@ describe('evaluateCall — web', () => {
   })
 })
 
+describe('evaluateCall — agent', () => {
+  it('asks by default', () => {
+    expect(
+      evalCall(
+        call('run_agent', { description: 'fix the tests' }),
+        defaultPermission,
+        'interactive',
+      ),
+    ).toBe('ask')
+  })
+
+  it('is auto-approved in auto mode like other non-breaker categories', () => {
+    expect(
+      evalCall(call('run_agent', { description: 'fix the tests' }), defaultPermission, 'auto'),
+    ).toBe('allow')
+  })
+
+  it('is denied in plan mode, unlike read/webSearch/webFetch', () => {
+    expect(
+      evalCall(call('run_agent', { description: 'fix the tests' }), defaultPermission, 'plan'),
+    ).toBe('deny')
+  })
+
+  it('honors an explicit allow rule', () => {
+    const rules = withRules({ agent: { allow: ['Agent(*)'], ask: [], deny: [] } })
+    expect(evalCall(call('run_agent', { description: 'anything' }), rules, 'interactive')).toBe(
+      'allow',
+    )
+  })
+})
+
 describe('ApprovalCache', () => {
   it('upgrades an ask to allow once approved', () => {
     const rules = withRules({ shell: { allow: [], ask: ['Bash(git *)'], deny: [] } })
@@ -249,6 +280,12 @@ describe('denyReason', () => {
 
   it('names plan mode for writes', () => {
     expect(denyReason(call('write_file', { path: 'a' }), defaultPermission, 'plan')).toBe(
+      'plan mode (read-only)',
+    )
+  })
+
+  it('names plan mode for a denied run_agent call', () => {
+    expect(denyReason(call('run_agent', { description: 'x' }), defaultPermission, 'plan')).toBe(
       'plan mode (read-only)',
     )
   })

@@ -12,7 +12,7 @@ import {
   type Decision,
 } from './rules.ts'
 
-type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch'
+type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch' | 'agent'
 
 // Tool name → permission category + the args key holding the operand. Populated
 // as tools land: `run_command` now; fs/git tools extend it in their slice. An
@@ -36,6 +36,7 @@ const TOOL_META: Record<string, { category: Category; key: string }> = {
   git_show: { category: 'read', key: '' },
   web_search: { category: 'webSearch', key: 'query' },
   web_fetch: { category: 'webFetch', key: 'url' },
+  run_agent: { category: 'agent', key: 'description' },
 }
 
 // Session-only approvals recorded by the prompt ('a' answer). A pattern added
@@ -67,6 +68,7 @@ const PATTERN_PREFIX: Record<Category, string> = {
   read: 'Read',
   webSearch: 'WebSearch',
   webFetch: 'WebFetch',
+  agent: 'Agent',
 }
 
 export function classifyCall(call: ToolCall): { category: Category; patterns: string[] } | null {
@@ -107,7 +109,10 @@ function finalize(
 ): Decision {
   if (decision === 'deny') return 'deny'
   if (mode === 'plan') {
-    if (category === 'edit') return 'deny'
+    // agent joins edit here: unlike read/webSearch/webFetch it isn't
+    // non-mutating — a sub-agent can run shell commands or edit files through
+    // its own inner tool calls, so plan mode must deny it outright.
+    if (category === 'edit' || category === 'agent') return 'deny'
     if (category === 'shell') {
       const subs = splitCommand(command)
       return subs.length > 0 && subs.every((c) => isReadonlyCommand(c)) ? 'allow' : 'deny'
@@ -162,7 +167,7 @@ export function denyReason(call: ToolCall, rules: Permission, mode: Mode): strin
     const rule = matchRuleInList(p, rules[category].deny)
     if (rule) return `rule ${rule}`
   }
-  if (mode === 'plan' && (category === 'shell' || category === 'edit')) {
+  if (mode === 'plan' && (category === 'shell' || category === 'edit' || category === 'agent')) {
     return 'plan mode (read-only)'
   }
   return undefined

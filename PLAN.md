@@ -34,13 +34,17 @@ commit**.
 - MCP integration (stdio + streamable HTTP), governed by the same engine
 - Client-side conversation history, with context trimming (stretch)
 - Session persistence/resume (stretch), parallel tool execution (stretch)
+- A single level of sub-agent delegation (`run_agent`), governed by the same
+  permission engine, running headless (no interactive prompts, no nested
+  sub-agents)
 
 ### Non-goals (for now)
 
 - Multi-provider backends (Anthropic, Google, …). The `Provider` interface
   isolates the SDK call so a second provider is a new file, not a refactor.
 - Full-screen TUI. The interface is a line-based scrollback REPL.
-- Subagents / multi-agent orchestration
+- Multi-agent orchestration beyond one level of delegation (no nested
+  sub-agents, no concurrent/parallel sub-agents)
 - Web UI, sandboxing/OS-level process isolation
 - A full markdown renderer (model output prints as plain text)
 
@@ -53,7 +57,7 @@ commit**.
 - **Imports:** builtins prefixed `node:`; relative imports carry the `.ts`
   extension; `import type` for type-only imports (`verbatimModuleSyntax`)
 - **Runtime deps:** `zod` (validation), `ansis` (terminal color),
-  `openai` (Responses SDK), `@modelcontextprotocol/sdk` (added in Phase 5)
+  `openai` (Responses SDK), `@modelcontextprotocol/sdk` (added in Phase 6)
 - **Dev deps:** `vitest`, `typescript`, `@types/node`, `prettier`
 
 ## 4. Architecture overview
@@ -85,6 +89,7 @@ src/
     git.ts              status / diff / log / show (read-only)
     web.ts              web_search (Brave Search) / web_fetch (HTML→text)
     netGuard.ts         SSRF guard: rejects loopback/private/link-local targets
+    agent.ts            run_agent: headless sub-agent, one level of nesting only
   permissions/
     rules.ts            rule engine: deny > ask > allow, Tool(pattern)
     modes.ts            interactive / auto / plan
@@ -92,7 +97,7 @@ src/
     breaker.ts          circuit breakers (destructive/escaping commands)
     policy.ts           evaluate a call → allow | ask | deny
     prompt.ts           y/n/a prompt with rule preview
-  mcp/                  (Phase 5) client.ts + adapter.ts (MCP tool → Tool)
+  mcp/                  (Phase 6) client.ts + adapter.ts (MCP tool → Tool)
   utils/
     palette.ts          fixed palette, NO_COLOR / --no-color
     stream.ts           live text writer + inline status-line manager
@@ -146,10 +151,11 @@ runTurn (Phase 2+, streaming):
     "edit":       { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
     "read":       { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
     "webSearch":  { "allow": [],                "ask": [], "deny": [] },
-    "webFetch":   { "allow": [],                "ask": [], "deny": [] }
-    // mcp.<server>.<tool> rules arrive with Phase 5
+    "webFetch":   { "allow": [],                "ask": [], "deny": [] },
+    "agent":      { "allow": [],                "ask": [], "deny": [] }
+    // mcp.<server>.<tool> rules arrive with Phase 6
   },
-  "mcp": { "servers": [] }                // Phase 5
+  "mcp": { "servers": [] }                // Phase 6
 }
 ```
 
@@ -191,9 +197,10 @@ conversation.
 | D5 | History | Client-side accumulation (`input.push(...response.output)` + `function_call_output` items); `store:false` |
 | D6 | Streaming | Phase 2 streams via `client.responses.stream()`. SDK 7.4 has no `sendFunctionCallOutputs`, so each tool round re-creates the request from D5's accumulated items — no later rework |
 | D7 | Security | Workspace-root confined (path traversal blocked, shell `cwd`=workspace); `additionalDirs` extends it |
-| D8 | Tool calls | Sequential execution; parallelism is a Phase 7 enhancement of the same loop |
+| D8 | Tool calls | Sequential execution; parallelism is a Phase 8 enhancement of the same loop |
 | D9 | Output | Plain text + ansis; no markdown renderer |
 | D10 | Network security | `web_fetch` is confined the network-native way D7 confines the filesystem: a hard, non-configurable guard (`tools/netGuard.ts`) rejects loopback/private/link-local resolved addresses before every request, independent of the (configurable) permission engine |
+| D11 | Sub-agents | One level of delegation only (`run_agent` can't call itself); headless — no interactive prompts, so an unresolved `ask` for its inner tool calls auto-denies instead of hanging or nesting a prompt inside a prompt |
 
 ### Permission model (Phase 3)
 
@@ -209,15 +216,17 @@ conversation.
   `*` already spans `/`). `web_search` and `web_fetch` are deliberately
   separate categories rather than one shared `web` bucket, so a rule can
   target one without also matching the other (a query string and a URL have
-  different risk profiles).
+  different risk profiles). `Agent(description)` follows the same crossSlash
+  convention.
 - **Modes:** `interactive` (default) · `auto` (auto-approve non-denied) ·
   `plan` (read-only, but `webSearch`/`webFetch` calls are non-mutating so
-  they're allowed through like reads — see Phase 4). CLI: `--mode`, aliases
-  `--yes`/`--plan`.
+  they're allowed through like reads — see Phase 4; `agent` is *not*
+  non-mutating, so `plan` mode denies it alongside `edit` — see Phase 5).
+  CLI: `--mode`, aliases `--yes`/`--plan`.
 - **Defaults:** read = allow, write = ask, shell = ask, webSearch = ask,
-  webFetch = ask (no readonly-style auto-allow list — every `web_search`/
-  `web_fetch` call needs a config rule or a live approval); `.env*` reads
-  blocked.
+  webFetch = ask, agent = ask (no readonly-style auto-allow list — every
+  `web_search`/`web_fetch`/`run_agent` call needs a config rule or a live
+  approval); `.env*` reads blocked.
 - **Read-only bash set:** built-in, non-configurable (`ls`, `cat`, `grep`,
   `git status`, …) runs unprompted.
 - **Compound commands:** split on `&&`/`||`/`;`/`|` and match each subcommand;
@@ -227,7 +236,7 @@ conversation.
 - **Tool visibility:** denied tools filtered from the model's toolset and
   hard-blocked at call time.
 - **Prompt UX:** `y` / `n` / `a`; `a` previews the exact pattern recorded
-  (e.g. `Bash(pnpm test *)`); approvals session-only until Phase 7.
+  (e.g. `Bash(pnpm test *)`); approvals session-only until Phase 8.
 - **MCP tools:** same engine, namespaced rules, default `ask`.
 - **Network tools (Phase 4):** `web_search`/`web_fetch` get their own
   `webSearch`/`webFetch` categories rather than folding into `read` (or into
@@ -237,6 +246,13 @@ conversation.
   that a rule allowing one shouldn't silently allow the other. Both default to
   `ask` with no auto-allow list. A hard, unconditional guard (D10) sits
   beneath the configurable policy.
+- **Sub-agent tool (Phase 5):** `run_agent` gets its own `agent` category
+  rather than reusing `edit` — it's `ask` by default like the other
+  non-readonly categories, but unlike `read`/`webSearch`/`webFetch` it's also
+  denied outright in `plan` mode, since a sub-agent's own inner tool calls
+  can write files or run shell commands. It runs headless (D11): its inner
+  calls are gated non-interactively, so anything not already allowed is
+  silently refused rather than popping a nested prompt.
 
 ### CLI UI/UX
 
@@ -268,7 +284,7 @@ conversation.
   ```
 
   `y` runs once, `n` denies, `a` allows for the session (approvals are
-  session-only until Phase 7). The prompt is an injected hook owned by the
+  session-only until Phase 8). The prompt is an injected hook owned by the
   agent loop — never the tool — so Phase 3 swaps it for the rule engine
   without touching `shell.ts`. Non-interactive runs (one-shot, piped stdin)
   auto-deny instead of prompting; `--yes` bypasses.
@@ -500,7 +516,64 @@ dependencies.
 
 ---
 
-### Phase 5 — MCP integration ⚪ not started
+### Phase 5 — Sub-agent delegation tool 🟢 done
+
+**Goal:** the agent can delegate a well-scoped, self-contained subtask to a
+fresh instance of the same tool-calling loop, gated by the permission engine,
+without opening the door to nested/runaway multi-agent orchestration.
+
+#### Core features
+
+- [x] `tools/agent.ts`: `run_agent` (`{ description, prompt }`) reuses
+      `agent/agent.ts`'s `runTurn` directly — a fresh, isolated conversation
+      (no access to the parent's history), the same `Provider` and
+      `ToolRegistry` as the parent. Headless: its inner tool calls are gated
+      via `permissions/prompt.ts`'s `createAuthorizer` with a non-interactive
+      IO (same helper the one-shot CLI uses), so an unresolved `ask` silently
+      auto-denies instead of popping a prompt — only what's already covered
+      by an allow rule, the read-only shell default, or `auto`/`plan` mode
+      goes through. One level of nesting only: its own toolset excludes
+      `run_agent` (filtered out of `toolsetForModel`'s result), backed by a
+      closure-scoped recursion guard as a hard backstop. Output capped like
+      `tools/shell.ts`/`tools/web.ts`'s `OUTPUT_CAP`.
+- [x] `permissions/rules.ts` + `policy.ts`: new `agent` category —
+      `Agent(description)` syntax, crossSlash glob matching (like
+      `Bash`/`WebSearch`/`WebFetch`), `TOOL_META` entry for `run_agent`,
+      default decision `ask`. Unlike `read`/`webSearch`/`webFetch`, `agent`
+      joins `edit` in `plan` mode's deny branch — a sub-agent can perform
+      arbitrary writes/shell commands through its own inner tool calls, so it
+      isn't non-mutating like a read.
+- [x] `permissions/prompt.ts`: `summaryOf` shows `agent: <description>`
+      instead of the generic fallback.
+- [x] `index.ts` + `cli/repl.ts`: `ApprovalCache` construction hoisted to
+      `index.ts`'s `main()` (was built separately inside the one-shot branch
+      and inside `runRepl()`) so `run_agent` shares the same session
+      "always allow" cache as the interactive authorizer; threaded into
+      `runRepl()` via a new `ReplOptions.approvals` field.
+- [x] `agent/systemPrompt.ts`: `DEFAULT_INSTRUCTIONS` tells the model when to
+      delegate to `run_agent` and that it can't request approval mid-task or
+      spawn further sub-agents.
+
+- **Tests:** `tools/agent.test.ts` (isolated conversation, recursion guard,
+   inner-call denial without prompting, inner-call allow-rule reuse, output
+   capping, input validation); `permissions/rules.test.ts` + `policy.test.ts`
+   (`Agent(...)` pattern parsing, default `ask`, plan-mode denial,
+   `denyReason`); `config/config.test.ts` (`permission.agent` merge);
+   `agent/systemPrompt.test.ts` (tool named, delegation guidance present).
+- **Docs:** updated this file + `README.md` (tools, permission model, config
+   example) + `AGENTS.md` (module map).
+- **Acceptance:** `run_agent` shows up in `/tools`, defaults to prompting for
+   approval, and is denied outright in `--mode plan`; a sub-agent's inner
+   tool call matching an existing allow rule succeeds without prompting,
+   while anything else is silently refused; nesting (`run_agent` calling
+   `run_agent`) is refused with a clear message; the parent conversation
+   shows exactly one status line for the whole sub-run, not the sub-agent's
+   intermediate tool calls.
+- **Commit:** when green.
+
+---
+
+### Phase 6 — MCP integration ⚪ not started
 
 **Goal:** connect external MCP servers (stdio + streamable HTTP); tools flow
 through the same permission engine.
@@ -533,7 +606,7 @@ through the same permission engine.
 
 ---
 
-### Phase 6 — Todo tracking tool ⚪ not started
+### Phase 7 — Todo tracking tool ⚪ not started
 
 **Goal:** the agent can plan complex work into tracked subtasks and keep them
 synchronized across tool rounds.
@@ -576,7 +649,7 @@ synchronized across tool rounds.
 
 ---
 
-### Phase 7 — Session persistence, context trimming, parallelism ⚪ not started
+### Phase 8 — Session persistence, context trimming, parallelism ⚪ not started
 
 **Goal:** long-running sessions survive restarts; token growth is bounded;
 tool calls can execute in parallel when safe.
@@ -618,7 +691,7 @@ tool calls can execute in parallel when safe.
 
 ---
 
-### Phase 8 — Polish, automation, and advanced features ⚪ future
+### Phase 9 — Polish, automation, and advanced features ⚪ future
 
 **Goal:** deferred enhancements for usability, automation, and extensibility.
 
@@ -677,14 +750,14 @@ tool calls can execute in parallel when safe.
 
 ## 8. Risks & open items
 
-- **Token growth in client-side history** — mitigated by Phase 7 context
+- **Token growth in client-side history** — mitigated by Phase 8 context
   trimming; watch for long REPL sessions in the interim.
 - **Shell rule matching is heuristic** — compound-command splitting and wrapper
   stripping are best-effort; circuit breakers are the backstop, not perfect
   parsing.
 - **`Provider` interface stability** — D1 keeps it minimal; avoid leaking SDK
   types into the agent loop so a second provider stays a new file.
-- **Rule persistence is deferred to Phase 7** — `always` approvals are
+- **Rule persistence is deferred to Phase 8** — `always` approvals are
   session-only until then.
 - **Strict tool schemas** (`additionalProperties: false`, all-required) shape
   the zod converter; optional fields become nullable unions.

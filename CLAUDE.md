@@ -36,26 +36,31 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm format` before committing.
 Request flow: `src/index.ts` parses CLI args (`cli/args.ts`), resolves config
 (`config/config.ts`, defaults → user config → project `picode.json` → CLI flags
 → env), builds a `Provider` (`agent/provider.ts`, wraps the OpenAI SDK) and a
-`ToolRegistry` (`tools/registry.ts`) with shell/fs/git tools registered, then
-dispatches to either a one-shot `runTurn` call or the interactive REPL
-(`cli/repl.ts`).
+`ToolRegistry` (`tools/registry.ts`) with shell/fs/git/web/agent tools
+registered, then dispatches to either a one-shot `runTurn` call or the
+interactive REPL (`cli/repl.ts`).
 
 - **`agent/agent.ts`** — `runTurn` is the core loop: streams a model turn,
   extracts `function_call` items from the response, executes each via the
   registry behind an `authorize` hook, appends `function_call_output` items,
   and re-streams — up to `MAX_TOOL_ROUNDS` (8) per turn. No `authorize` hook
-  or registry means tool calls are a no-op, not an error.
+  or registry means tool calls are a no-op, not an error. `tools/agent.ts`'s
+  `run_agent` tool calls `runTurn` again with a fresh conversation, making it
+  the one place the loop nests inside itself (capped at one level).
 - **`permissions/`** — the tool-approval engine (replaces the old
   `cli/approval.ts`). `policy.ts` classifies each `ToolCall` into a category
-  (`shell`/`edit`/`read`) via `TOOL_META`, builds match patterns (e.g.
-  `Bash(pnpm test *)`), and evaluates them against `rules.ts` allow/ask/deny
-  patterns plus mode (`modes.ts`); `readonly.ts` and `breaker.ts` special-case
-  read-only shell commands and destructive/`sudo` commands; `prompt.ts`
-  (`createAuthorizer`) wires the resolved decision to an interactive y/n/a
-  prompt, backed by a session-only `ApprovalCache` for "always allow"
-  answers. One-shot (`--prompt`) runs are forced non-interactive, so an `ask`
-  decision resolves to denial rather than prompting; a denial sets exit code
-  2. `toolsetForModel()` filters the registry down to what's exposed to the
+  (`shell`/`edit`/`read`/`webSearch`/`webFetch`/`agent`) via `TOOL_META`,
+  builds match patterns (e.g. `Bash(pnpm test *)`), and evaluates them
+  against `rules.ts` allow/ask/deny patterns plus mode (`modes.ts`);
+  `readonly.ts` and `breaker.ts` special-case read-only shell commands and
+  destructive/`sudo` commands; `prompt.ts` (`createAuthorizer`) wires the
+  resolved decision to an interactive y/n/a prompt, backed by a session-only
+  `ApprovalCache` for "always allow" answers — the same authorizer, given a
+  non-interactive IO, is also how `run_agent` gates its own inner tool calls
+  headlessly (an unresolved `ask` auto-denies instead of prompting). One-shot
+  (`--prompt`) runs are forced non-interactive, so an `ask` decision resolves
+  to denial rather than prompting; a denial sets exit code 2.
+  `toolsetForModel()` filters the registry down to what's exposed to the
   model for the current permission/mode — everything else stays invisible to
   the model, while `authorize()` in the loop is the actual enforcement point.
 - **`tools/registry.ts`** — `ToolRegistry` maps tool name → `Tool` (zod input

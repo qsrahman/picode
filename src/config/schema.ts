@@ -24,6 +24,9 @@ export const permissionSchema = z.object({
   // tools with different risk profiles (a query string vs. an arbitrary URL).
   webSearch: toolRulesSchema,
   webFetch: toolRulesSchema,
+  // A sub-agent can perform arbitrary writes/shell commands through its own
+  // inner tool calls, so it gets its own category rather than reusing `edit`.
+  agent: toolRulesSchema,
 })
 export type Permission = z.infer<typeof permissionSchema>
 
@@ -36,6 +39,7 @@ export const filePermissionSchema = z
     read: toolRulesSchema.partial().optional(),
     webSearch: toolRulesSchema.partial().optional(),
     webFetch: toolRulesSchema.partial().optional(),
+    agent: toolRulesSchema.partial().optional(),
   })
   .partial()
   .optional()
@@ -46,6 +50,7 @@ export const defaultPermission: Permission = {
   read: emptyToolRules,
   webSearch: emptyToolRules,
   webFetch: emptyToolRules,
+  agent: emptyToolRules,
 }
 
 // All fields are required: defaults are merged in config.ts before parsing, so
