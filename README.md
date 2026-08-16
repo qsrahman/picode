@@ -222,9 +222,17 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 pnpm dev             # run with --watch
 pnpm test            # run tests once
 pnpm test:watch      # run tests in watch mode
+pnpm test:live       # end-to-end live test against the configured model
 pnpm typecheck       # tsc --noEmit
 pnpm format          # prettier --write
 pnpm format:check    # prettier --check (gates CI)
 ```
+
+`pnpm test:live` (`scripts/live-e2e.py`) drives the real CLI against the
+configured model (`.env` key + `pcode.json` model/base URL) and asserts the
+CLI output — tool status lines, streamed text, and permission prompts — stays
+clean (no clobbering) and that exit codes track policy. It runs model-dependent
+REPL flows under a pseudo-terminal via `script`; use `--quick` to skip them and
+`--keep` to retain the captured transcripts in `.live/`.
 
 Developer guide: [`AGENTS.md`](./AGENTS.md)

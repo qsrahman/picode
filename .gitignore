@@ -3,5 +3,6 @@ node_modules/
 dist/
 coverage/
 .pcode/
+.live/
 .env
 .DS_Store

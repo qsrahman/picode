@@ -11,8 +11,9 @@ files must stay in sync with the code.
 pnpm install        # install dependencies (pnpm only, never npm/yarn)
 pnpm dev            # run src/index.ts with --watch
 pnpm start          # run src/index.ts
-pnpm test           # vitest run
+pnpm test            # vitest run
 pnpm test:watch     # vitest
+pnpm test:live       # end-to-end live test against the configured model
 pnpm typecheck      # tsc --noEmit
 pnpm format         # prettier --write .
 pnpm format:check   # prettier --check . (gates CI)
