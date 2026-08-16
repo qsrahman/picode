@@ -1,6 +1,6 @@
 {
   "name": "pcode",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Model-agnostic AI coding agent built on the OpenAI Responses API",
   "type": "module",
   "license": "MIT",
