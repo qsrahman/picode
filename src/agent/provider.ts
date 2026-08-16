@@ -23,7 +23,7 @@ export interface ProviderItem {
 export type ProviderEvent = { type: 'text_delta'; delta: string }
 
 export interface ProviderStream extends AsyncIterable<ProviderEvent> {
-  finalOutput(): Promise<{ items: ProviderItem[]; text: string }>
+  finalOutput(): Promise<{ items: ProviderItem[]; text: string; incomplete?: boolean }>
 }
 
 export interface Provider {
@@ -75,14 +75,15 @@ export function createProvider(config: Config, apiKey: string): Provider {
           try {
             response = await stream.finalResponse()
           } catch {
-            // Some endpoints (e.g. Ollama) emit a final response with no
-            // `output` field, which the SDK throws on. Degrade to an empty
-            // turn rather than crashing the whole run.
-            return { items: [], text: '' }
+            // Some endpoints (e.g. Ollama) finalize a response with no
+            // `output` field, throwing inside the SDK. Degrade to an empty
+            // turn and flag it as incomplete rather than crashing the run.
+            return { items: [], text: '', incomplete: true }
           }
           return {
             items: (response.output ?? []) as unknown as ProviderItem[],
             text: response.output_text ?? '',
+            incomplete: response.status === 'incomplete' ? true : undefined,
           }
         },
       }

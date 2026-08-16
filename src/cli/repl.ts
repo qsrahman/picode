@@ -284,6 +284,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     let lastDeltaNewline = false
     let separatorWritten = false
     let truncated = false
+    let incomplete = false
     toolSettled = false
     try {
       // A leading blank line separates the turn from the prompt line; the
@@ -309,6 +310,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       })
       conversation = result.items
       truncated = result.truncated
+      incomplete = result.incomplete ?? false
       if (opts.args.noStream && result.text) process.stdout.write(`\n${result.text}\n\n`)
     } catch (err) {
       if (turnController.signal.aborted) {
@@ -328,6 +330,11 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     if (truncated) {
       process.stdout.write(
         `\n${palette.error('Error:')} tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n\n`,
+      )
+    }
+    if (incomplete) {
+      process.stdout.write(
+        `\n${palette.warn('Warning:')} response incomplete — output may be truncated\n\n`,
       )
     }
   }

@@ -23,6 +23,9 @@ export interface TurnResult {
   items: ProviderItem[]
   text: string
   truncated: boolean
+  // True when the provider returned an incomplete response (or a malformed one
+  // we degraded from), so the CLI can warn that output may be truncated.
+  incomplete?: boolean
 }
 
 // One model turn with up to MAX_TOOL_ROUNDS tool rounds. There is no
@@ -47,7 +50,12 @@ export async function runTurn(
     const final = await stream.finalOutput()
     const calls = extractFunctionCalls(final.items)
     if (calls.length === 0) {
-      return { items: [...items, ...final.items], text: final.text, truncated: false }
+      return {
+        items: [...items, ...final.items],
+        text: final.text,
+        truncated: false,
+        incomplete: final.incomplete,
+      }
     }
     items.push(...final.items)
     for (const call of calls) {

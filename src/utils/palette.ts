@@ -5,6 +5,7 @@ export interface Palette {
   promptMuted: (s: string) => string
   tool: (s: string) => string
   error: (s: string) => string
+  warn: (s: string) => string
   tip: (s: string) => string
 }
 
@@ -17,6 +18,7 @@ export function createPalette(color: boolean): Palette {
     promptMuted: (s) => a.dim(s),
     tool: (s) => a.blue(s),
     error: (s) => a.red(s),
+    warn: (s) => a.yellow(s),
     tip: (s) => a.dim(s),
   }
 }

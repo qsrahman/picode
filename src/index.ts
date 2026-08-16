@@ -105,6 +105,9 @@ async function main(): Promise<void> {
       process.stderr.write(`pcode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
       process.exitCode = 3
     }
+    if (result.incomplete) {
+      process.stderr.write('pcode: response incomplete — output may be truncated\n')
+    }
     if (denied) process.exitCode = 2
     return
   }
