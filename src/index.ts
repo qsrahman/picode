@@ -14,6 +14,7 @@ import { createShellTool } from './tools/shell.ts'
 import type { ToolCall } from './tools/types.ts'
 import { createFsTools } from './tools/fs.ts'
 import { createGitTools } from './tools/git.ts'
+import { createWebTools } from './tools/web.ts'
 import { ApprovalCache, toolsetForModel } from './permissions/policy.ts'
 import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
@@ -70,6 +71,12 @@ async function main(): Promise<void> {
     registry.register(tool)
   }
   for (const tool of createGitTools(config.root)) {
+    registry.register(tool)
+  }
+  for (const tool of createWebTools({
+    apiKey: process.env[config.braveSearchApiKeyEnv],
+    timeoutMs: config.toolTimeout,
+  })) {
     registry.register(tool)
   }
   const tools = toolsetForModel(registry, config.permission, config.mode)

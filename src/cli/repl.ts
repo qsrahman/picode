@@ -13,6 +13,7 @@ import { messageOf } from '../errors.ts'
 import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
 import { ApprovalCache, denyReason, evaluateCall } from '../permissions/policy.ts'
 import { promptForDecision, summaryOf } from '../permissions/prompt.ts'
+import { modeIndicator } from '../permissions/modes.ts'
 
 export interface ReplOptions {
   provider: Provider
@@ -84,7 +85,8 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     if (pending) return palette.promptMuted('… ')
     // Two-line prompt: a plain hint line above the input line. The mode
     // indicator stays visible when the agent is not in interactive mode.
-    const mode = config.mode !== 'interactive' ? ` [${config.mode}]` : ''
+    const indicator = modeIndicator(config.mode)
+    const mode = indicator ? ` ${indicator}` : ''
     return `Ask anything, /help for commands${mode}\n${palette.prompt('>')} `
   }
 
@@ -189,7 +191,10 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       process.stdout.write(`  ${palette.prompt('Run? (y/n/a)')} `)
       awaitingApproval = true
       approvalWaiter = (line) => {
-        process.stdout.write('\x1b[1A\r\x1b[2K')
+        // Erase the 3 lines the prompt occupies (`Run? (y/n/a) …`,
+        // `'a' approves: …`, and this answer line) so resume/settle picks up
+        // right below the frozen status line pauseStatus() left in place.
+        process.stdout.write('\x1b[1A\r\x1b[2K'.repeat(3))
         resolve(line.trim().toLowerCase())
       }
     })
@@ -225,7 +230,6 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
       rules: config.permission,
       approvals,
       io: { print: (l) => process.stdout.write(`${l}\n`), question: askApproval },
-      dim: palette.promptMuted,
     })
     if (outcome.allow) {
       writer.resumeStatus()

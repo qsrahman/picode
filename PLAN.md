@@ -53,7 +53,7 @@ commit**.
 - **Imports:** builtins prefixed `node:`; relative imports carry the `.ts`
   extension; `import type` for type-only imports (`verbatimModuleSyntax`)
 - **Runtime deps:** `zod` (validation), `ansis` (terminal color),
-  `openai` (Responses SDK), `@modelcontextprotocol/sdk` (added in Phase 4)
+  `openai` (Responses SDK), `@modelcontextprotocol/sdk` (added in Phase 5)
 - **Dev deps:** `vitest`, `typescript`, `@types/node`, `prettier`
 
 ## 4. Architecture overview
@@ -83,6 +83,8 @@ src/
     fs.ts               read_file / write_file / list_dir / stat
     shell.ts            run_command (timeout, cwd, capped output)
     git.ts              status / diff / log / show (read-only)
+    web.ts              web_search (Brave Search) / web_fetch (HTML→text)
+    netGuard.ts         SSRF guard: rejects loopback/private/link-local targets
   permissions/
     rules.ts            rule engine: deny > ask > allow, Tool(pattern)
     modes.ts            interactive / auto / plan
@@ -90,7 +92,7 @@ src/
     breaker.ts          circuit breakers (destructive/escaping commands)
     policy.ts           evaluate a call → allow | ask | deny
     prompt.ts           y/n/a prompt with rule preview
-  mcp/                  (Phase 4) client.ts + adapter.ts (MCP tool → Tool)
+  mcp/                  (Phase 5) client.ts + adapter.ts (MCP tool → Tool)
   utils/
     palette.ts          fixed palette, NO_COLOR / --no-color
     stream.ts           live text writer + inline status-line manager
@@ -131,6 +133,7 @@ runTurn (Phase 2+, streaming):
   "model": "gpt-5.6",                    // OPENAI_DEFAULT_MODEL env overrides
   "baseURL": "https://api.openai.com/v1",  // OPENAI_BASE_URL env overrides
   "apiKeyEnv": "OPENAI_API_KEY",          // key read from this env var
+  "braveSearchApiKeyEnv": "BRAVE_SEARCH_API_KEY", // web_search key env var
   "instructions": "…coding agent system prompt…",
   "root": "/path/to/workspace",          // default: process.cwd()
   "additionalDirs": ["../sibling"],
@@ -141,10 +144,11 @@ runTurn (Phase 2+, streaming):
   "permission": {
     "shell": { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
     "edit":  { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
-    "read":  { "allow": [],                "ask": [], "deny": ["Read(.env)"] }
-    // mcp.<server>.<tool> rules arrive with Phase 4
+    "read":  { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
+    "web":   { "allow": [],                "ask": [], "deny": [] }
+    // mcp.<server>.<tool> rules arrive with Phase 5
   },
-  "mcp": { "servers": [] }                // Phase 4
+  "mcp": { "servers": [] }                // Phase 5
 }
 ```
 
@@ -186,8 +190,9 @@ conversation.
 | D5 | History | Client-side accumulation (`input.push(...response.output)` + `function_call_output` items); `store:false` |
 | D6 | Streaming | Phase 2 streams via `client.responses.stream()`. SDK 7.4 has no `sendFunctionCallOutputs`, so each tool round re-creates the request from D5's accumulated items — no later rework |
 | D7 | Security | Workspace-root confined (path traversal blocked, shell `cwd`=workspace); `additionalDirs` extends it |
-| D8 | Tool calls | Sequential execution; parallelism is a Phase 5 enhancement of the same loop |
+| D8 | Tool calls | Sequential execution; parallelism is a Phase 7 enhancement of the same loop |
 | D9 | Output | Plain text + ansis; no markdown renderer |
+| D10 | Network security | `web_fetch` is confined the network-native way D7 confines the filesystem: a hard, non-configurable guard (`tools/netGuard.ts`) rejects loopback/private/link-local resolved addresses before every request, independent of the (configurable) permission engine |
 
 ### Permission model (Phase 3)
 
@@ -196,11 +201,16 @@ conversation.
   fallback for `ask`.
 - **Precedence:** `deny > ask > allow`, independent of rule specificity.
 - **Patterns:** Claude-Code-style `Tool(pattern)` — `Bash(pnpm test *)`,
-  `Edit(src/**)`, `Read(./.env)`, `mcp.<server>.<tool>`; `*`/`?` wildcards,
-  `**` for paths.
+  `Edit(src/**)`, `Read(./.env)`, `Web(https://internal.corp/**)`,
+  `mcp.<server>.<tool>`; `*`/`?` wildcards, `**` for paths (`Bash`/`Web`
+  operands use crossSlash glob matching instead, since they aren't nested
+  paths — a bare `*` already spans `/`).
 - **Modes:** `interactive` (default) · `auto` (auto-approve non-denied) ·
-  `plan` (read-only). CLI: `--mode`, aliases `--yes`/`--plan`.
-- **Defaults:** read = allow, write = ask, shell = ask; `.env*` reads blocked.
+  `plan` (read-only, but `web` calls are non-mutating so they're allowed
+  through like reads — see Phase 4). CLI: `--mode`, aliases `--yes`/`--plan`.
+- **Defaults:** read = allow, write = ask, shell = ask, web = ask (no
+  readonly-style auto-allow list — every `web_search`/`web_fetch` call needs
+  a config rule or a live approval); `.env*` reads blocked.
 - **Read-only bash set:** built-in, non-configurable (`ls`, `cat`, `grep`,
   `git status`, …) runs unprompted.
 - **Compound commands:** split on `&&`/`||`/`;`/`|` and match each subcommand;
@@ -210,8 +220,13 @@ conversation.
 - **Tool visibility:** denied tools filtered from the model's toolset and
   hard-blocked at call time.
 - **Prompt UX:** `y` / `n` / `a`; `a` previews the exact pattern recorded
-  (e.g. `Bash(pnpm test *)`); approvals session-only until Phase 5.
+  (e.g. `Bash(pnpm test *)`); approvals session-only until Phase 7.
 - **MCP tools:** same engine, namespaced rules, default `ask`.
+- **Network tools (Phase 4):** `web_search`/`web_fetch` get their own `web`
+  category rather than folding into `read` — network egress to an arbitrary
+  host has a different risk profile than a workspace-confined file read (SSRF,
+  context exfiltration), so it defaults to `ask` with no auto-allow list. A
+  hard, unconditional guard (D10) sits beneath the configurable policy.
 
 ### CLI UI/UX
 
@@ -243,7 +258,7 @@ conversation.
   ```
 
   `y` runs once, `n` denies, `a` allows for the session (approvals are
-  session-only until Phase 5). The prompt is an injected hook owned by the
+  session-only until Phase 7). The prompt is an injected hook owned by the
   agent loop — never the tool — so Phase 3 swaps it for the rule engine
   without touching `shell.ts`. Non-interactive runs (one-shot, piped stdin)
   auto-deny instead of prompting; `--yes` bypasses.
@@ -418,7 +433,58 @@ one-shot and interactive REPL.
 
 ---
 
-### Phase 4 — MCP integration ⚪ not started
+### Phase 4 — Web tools 🟢 done
+
+**Goal:** the agent can search the web and fetch a page's content, gated by
+the permission engine and a hard SSRF guard, with zero new runtime
+dependencies.
+
+#### Core features
+
+- [x] `tools/web.ts`: `web_search` (Brave Search API — title/url/description
+      results, capped like `tools/shell.ts`'s output) and `web_fetch` (fetch a
+      URL, stream-cap the response, strip HTML to text via an in-house
+      minimal stripper, cap the output)
+- [x] `tools/netGuard.ts`: `assertPublicUrl` — hard, non-configurable check
+      (D10) run before every `web_fetch` request; rejects loopback/private/
+      link-local literal hosts and resolved DNS addresses (covers the cloud
+      metadata endpoint `169.254.169.254`), independent of the permission
+      engine, mirroring D7's workspace confinement for the filesystem
+- [x] `config/schema.ts` + `config.ts`: `braveSearchApiKeyEnv` (default
+      `BRAVE_SEARCH_API_KEY`) — env var *name*, same pattern as `apiKeyEnv`;
+      missing key degrades `web_search` to a clear in-band message rather than
+      failing startup or hiding the tool
+- [x] `permissions/rules.ts` + `policy.ts`: new `web` category — `Web(pattern)`
+      syntax, crossSlash glob matching (like `Bash`, not path-glob like
+      `Edit`/`Read`), `TOOL_META` entries for `web_search`/`web_fetch`,
+      default decision `ask` (no readonly-style auto-allow list); plan mode
+      allows `web` through like `read` (both non-mutating); `auto` mode
+      auto-approves it like every other non-breaker category
+- [x] `permissions/prompt.ts`: `summaryOf` shows `web_search: <query>` /
+      `web_fetch: <url>` instead of the generic fallback
+- [x] `index.ts`: tools registered unconditionally alongside shell/fs/git
+
+- **Tests:** `tools/netGuard.test.ts` (literal + DNS-resolved rejection,
+   mocked `node:dns/promises`); `tools/web.test.ts` (mocked global `fetch` —
+   missing-key message, result formatting, non-2xx, HTML stripping, non-HTML
+   passthrough, output capping, SSRF short-circuit before `fetch` runs);
+   `permissions/rules.test.ts` + `policy.test.ts` (`Web(...)` pattern parsing
+   and matching, `web` category defaults and mode behavior);
+   `config/config.test.ts` (`permission.web` merge, `braveSearchApiKeyEnv`)
+- **Docs:** updated this file + `README.md` (tools, config example, `.env`,
+   permission model, roadmap) + `AGENTS.md` (module map)
+- **Acceptance:** `web_search`/`web_fetch` show up in `/tools`; both default
+   to prompting for approval; the SSRF guard rejects `http://169.254.169.254/`
+   and `http://localhost:11434/` before any request is made; a missing
+   `BRAVE_SEARCH_API_KEY` produces a clear message instead of an error;
+   verified live via a PTY session against a real Brave API key and a real
+   fetch — status-line rendering during the approval prompt is correct (reuses
+   the `pauseStatus`/`promptForDecision` fix, no regression).
+- **Commit:** when green.
+
+---
+
+### Phase 5 — MCP integration ⚪ not started
 
 **Goal:** connect external MCP servers (stdio + streamable HTTP); tools flow
 through the same permission engine.
@@ -451,7 +517,7 @@ through the same permission engine.
 
 ---
 
-### Phase 5 — Todo tracking tool ⚪ not started
+### Phase 6 — Todo tracking tool ⚪ not started
 
 **Goal:** the agent can plan complex work into tracked subtasks and keep them
 synchronized across tool rounds.
@@ -494,7 +560,7 @@ synchronized across tool rounds.
 
 ---
 
-### Phase 6 — Session persistence, context trimming, parallelism ⚪ not started
+### Phase 7 — Session persistence, context trimming, parallelism ⚪ not started
 
 **Goal:** long-running sessions survive restarts; token growth is bounded;
 tool calls can execute in parallel when safe.
@@ -536,7 +602,7 @@ tool calls can execute in parallel when safe.
 
 ---
 
-### Phase 7 — Polish, automation, and advanced features ⚪ future
+### Phase 8 — Polish, automation, and advanced features ⚪ future
 
 **Goal:** deferred enhancements for usability, automation, and extensibility.
 
@@ -595,14 +661,20 @@ tool calls can execute in parallel when safe.
 
 ## 8. Risks & open items
 
-- **Token growth in client-side history** — mitigated by Phase 5 context
+- **Token growth in client-side history** — mitigated by Phase 7 context
   trimming; watch for long REPL sessions in the interim.
 - **Shell rule matching is heuristic** — compound-command splitting and wrapper
   stripping are best-effort; circuit breakers are the backstop, not perfect
   parsing.
 - **`Provider` interface stability** — D1 keeps it minimal; avoid leaking SDK
   types into the agent loop so a second provider stays a new file.
-- **Rule persistence is deferred to Phase 5** — `always` approvals are
+- **Rule persistence is deferred to Phase 7** — `always` approvals are
   session-only until then.
 - **Strict tool schemas** (`additionalProperties: false`, all-required) shape
   the zod converter; optional fields become nullable unions.
+- **`netGuard`'s SSRF check doesn't pin the connection** — `assertPublicUrl`
+  validates the resolved address at check time, not at connect time, so a
+  DNS answer that changes between the check and Node's own connect (DNS
+  rebinding) isn't fully closed. Accepted as proportionate for a local dev
+  tool running under a human-approved permission policy; full pinning would
+  need a custom `fetch` dispatcher.

@@ -142,6 +142,52 @@ describe('evaluateCall — read defaults', () => {
       evalCall(call('read_file', { path: 'src/a.ts' }), defaultPermission, 'interactive'),
     ).toBe('allow')
   })
+
+  it('always allows git reads, since they carry no operand to classify', () => {
+    expect(evalCall(call('git_status', {}), defaultPermission, 'interactive')).toBe('allow')
+    expect(evalCall(call('git_diff', { ref: 'HEAD' }), defaultPermission, 'interactive')).toBe(
+      'allow',
+    )
+  })
+})
+
+describe('evaluateCall — web', () => {
+  it('asks by default, with no readonly-style auto-allow', () => {
+    expect(
+      evalCall(call('web_search', { query: 'pcode agent' }), defaultPermission, 'interactive'),
+    ).toBe('ask')
+    expect(
+      evalCall(call('web_fetch', { url: 'https://example.com' }), defaultPermission, 'interactive'),
+    ).toBe('ask')
+  })
+
+  it('honors an explicit allow rule', () => {
+    const rules = withRules({ web: { allow: ['Web(https://example.com/**)'], ask: [], deny: [] } })
+    expect(
+      evalCall(call('web_fetch', { url: 'https://example.com/docs' }), rules, 'interactive'),
+    ).toBe('allow')
+  })
+
+  it('honors an explicit deny rule even in auto mode', () => {
+    const rules = withRules({
+      web: { allow: [], ask: [], deny: ['Web(https://internal.corp/**)'] },
+    })
+    expect(evalCall(call('web_fetch', { url: 'https://internal.corp/x' }), rules, 'auto')).toBe(
+      'deny',
+    )
+  })
+
+  it('is auto-approved in auto mode like other non-breaker categories', () => {
+    expect(evalCall(call('web_search', { query: 'pcode agent' }), defaultPermission, 'auto')).toBe(
+      'allow',
+    )
+  })
+
+  it('is allowed through in plan mode, like reads', () => {
+    expect(
+      evalCall(call('web_fetch', { url: 'https://example.com' }), defaultPermission, 'plan'),
+    ).toBe('allow')
+  })
 })
 
 describe('ApprovalCache', () => {

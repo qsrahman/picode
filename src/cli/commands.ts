@@ -1,7 +1,5 @@
-import type { Mode } from '../config/schema.ts'
+import { modes, type Mode } from '../config/schema.ts'
 import type { Decision } from '../permissions/rules.ts'
-
-const MODES: Mode[] = ['interactive', 'auto', 'plan']
 
 const DECISION_LABEL: Record<Decision, string> = {
   allow: 'allow',
@@ -68,9 +66,9 @@ export function runCommand(input: string, ctx: CommandContext): boolean {
       return true
     case '/mode':
       if (args !== '') {
-        const next = MODES.find((m) => m === args)
+        const next = modes.find((m) => m === args)
         if (!next) {
-          ctx.print(`unknown mode: ${args} (expected ${MODES.join(' | ')})`)
+          ctx.print(`unknown mode: ${args} (expected ${modes.join(' | ')})`)
           return true
         }
         ctx.setMode?.(next)

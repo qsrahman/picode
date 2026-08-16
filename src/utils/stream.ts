@@ -42,16 +42,22 @@ export class StreamWriter {
     this.timer = setInterval(() => this.render(), 200)
   }
 
-  // Freezes the running line while the approval prompt sits below it; the
-  // caller moves the cursor back onto the status line before resuming.
+  // Freezes the running line while the approval prompt sits below it. Ends
+  // the in-place line with the newline the timer had been withholding, so
+  // whatever the prompt prints next lands on its own line instead of
+  // colliding with the frozen status text; the caller erases the prompt's
+  // lines before resuming/settling so the next render lands right below it.
   pauseStatus(): void {
     this.stopTimer()
+    if (!this.options.enabled || !this.active) return
+    this.options.write('\n')
+    this.atLineStart = true
   }
 
   resumeStatus(): void {
-    if (this.options.enabled && this.active && !this.timer) {
-      this.timer = setInterval(() => this.render(), 200)
-    }
+    if (!this.options.enabled || !this.active) return
+    this.render()
+    if (!this.timer) this.timer = setInterval(() => this.render(), 200)
   }
 
   // Replaces the running line's timer with the settled appendix

@@ -15,10 +15,14 @@ function withRules(rules: Partial<Permission>): Permission {
 }
 
 describe('parseToolPattern', () => {
-  it('parses the three configured categories', () => {
+  it('parses the four configured categories', () => {
     expect(parseToolPattern('Bash(pnpm test)')).toEqual({ kind: 'shell', operand: 'pnpm test' })
     expect(parseToolPattern('Edit(src/a.ts)')).toEqual({ kind: 'edit', operand: 'src/a.ts' })
     expect(parseToolPattern('Read(.env)')).toEqual({ kind: 'read', operand: '.env' })
+    expect(parseToolPattern('Web(https://example.com)')).toEqual({
+      kind: 'web',
+      operand: 'https://example.com',
+    })
   })
 
   it('rejects malformed or unknown patterns', () => {
@@ -40,6 +44,10 @@ describe('glob matching', () => {
     expect(matchPathGlob('src/*', 'src/a/b.ts')).toBe(false)
     expect(matchPathGlob('src/**', 'src/a/b.ts')).toBe(true)
     expect(matchPathGlob('*.env', 'config/.env')).toBe(false)
+  })
+
+  it('crosses slashes for a bare * on Web patterns, like Bash', () => {
+    expect(matchGlob('https://docs.example.com/*', 'https://docs.example.com/a/b')).toBe(true)
   })
 })
 
@@ -77,6 +85,14 @@ describe('evaluatePattern precedence', () => {
   it('matches the right category only', () => {
     const rules = withRules({ shell: { allow: ['Bash(*)'], ask: [], deny: [] } })
     expect(evaluatePattern('Edit(src/x)', rules)).toBeNull()
+  })
+
+  it('matches Web patterns using crossSlash globs', () => {
+    const rules = withRules({
+      web: { allow: [], ask: [], deny: ['Web(https://internal.corp/**)'] },
+    })
+    expect(evaluatePattern('Web(https://internal.corp/secrets)', rules)).toBe('deny')
+    expect(evaluatePattern('Web(https://example.com)', rules)).toBeNull()
   })
 })
 

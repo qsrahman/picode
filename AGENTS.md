@@ -33,7 +33,8 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm format` before committing.
 - Use `import type` for type-only imports (`verbatimModuleSyntax` is on).
 - `erasableSyntaxOnly` is on: no enums, namespaces, or parameter properties.
 - Runtime deps: `zod`, `ansis`, `openai`, `@modelcontextprotocol/sdk`
-  (added in Phase 4).
+  (added in Phase 5). `web_search`/`web_fetch` (Phase 4) use Node's built-in
+  `fetch` — no HTTP client dependency.
 
 ## Conventions
 
@@ -60,17 +61,22 @@ src/
   cli/              args, commands (slash), repl, history, approval
   config/           zod schema + load/merge/validate
   agent/            provider (OpenAI impl) + agent loop
-  tools/            Tool interface, zod→JSON schema, registry, shell
+  tools/            Tool interface, zod→JSON schema, registry, shell, fs, git,
+                    web (search/fetch) + netGuard (SSRF guard)
   utils/            palette + streaming/status writer
 tests/              mirrors src/ 1:1
 ```
 
 > The following modules are planned (see PLAN.md), not yet present:
-> `mcp/` client + adapter (Phase 4).
+> `mcp/` client + adapter (Phase 5).
 
 > Phase 3 is done: `tools/fs.ts` + `tools/git.ts`, and the `permissions/`
 > engine (`rules.ts`, `modes.ts`, `readonly.ts`, `breaker.ts`, `policy.ts`,
 > `prompt.ts`) are implemented and wired into the loop via `authorize()`.
+
+> Phase 4 is done: `tools/web.ts` (`web_search`, `web_fetch`) +
+> `tools/netGuard.ts` (SSRF guard), and the permission engine's `web` category
+> (`Web(pattern)`, default `ask`) are implemented.
 
 ## Testing
 

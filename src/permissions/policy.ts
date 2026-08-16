@@ -1,7 +1,7 @@
 import type { Mode, Permission } from '../config/schema.ts'
 import type { ToolCall, ToolDefinition } from '../tools/types.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
-import { destructiveBreaker } from './breaker.ts'
+import { shellBreakers } from './breaker.ts'
 import { isReadonlyCommand } from './readonly.ts'
 import {
   combineDecisions,
@@ -12,10 +12,12 @@ import {
   type Decision,
 } from './rules.ts'
 
+type Category = 'shell' | 'edit' | 'read' | 'web'
+
 // Tool name → permission category + the args key holding the operand. Populated
 // as tools land: `run_command` now; fs/git tools extend it in their slice. An
 // unmapped tool is treated as a write (denied in plan, asked otherwise).
-const TOOL_META: Record<string, { category: 'shell' | 'edit' | 'read'; key: string }> = {
+const TOOL_META: Record<string, { category: Category; key: string }> = {
   run_command: { category: 'shell', key: 'command' },
   // fs/git tools (slice H) register here so policy has a stable contract to
   // classify against; their implementations must use these exact names/keys.
@@ -23,13 +25,17 @@ const TOOL_META: Record<string, { category: 'shell' | 'edit' | 'read'; key: stri
   read_file: { category: 'read', key: 'path' },
   list_dir: { category: 'read', key: 'path' },
   stat: { category: 'read', key: 'path' },
-  git_status: { category: 'read', key: 'path' },
-  git_diff: { category: 'read', key: 'path' },
-  git_log: { category: 'read', key: 'path' },
-  git_show: { category: 'read', key: 'path' },
+  // git tools take no path-shaped arg, so `key` never resolves to an operand
+  // and classifyCall always produces `Read()`. That's intentional: it makes
+  // git reads unconditionally allowed by the read-category default (nothing
+  // can equal the `.env` deny check) and un-targetable by a Read(...) rule.
+  git_status: { category: 'read', key: '' },
+  git_diff: { category: 'read', key: '' },
+  git_log: { category: 'read', key: '' },
+  git_show: { category: 'read', key: '' },
+  web_search: { category: 'web', key: 'query' },
+  web_fetch: { category: 'web', key: 'url' },
 }
-
-const SHELL_BREAKERS = [destructiveBreaker, (cmd: string) => /\bsudo\b|\bsu\s/.test(cmd)]
 
 // Session-only approvals recorded by the prompt ('a' answer). A pattern added
 // here resolves to `allow` unless a deny rule matches a different pattern.
@@ -54,24 +60,30 @@ export interface EvaluateOptions {
   approvals?: ApprovalCache
 }
 
-export function classifyCall(
-  call: ToolCall,
-): { category: 'shell' | 'edit' | 'read'; patterns: string[] } | null {
+const PATTERN_PREFIX: Record<Category, string> = {
+  shell: 'Bash',
+  edit: 'Edit',
+  read: 'Read',
+  web: 'Web',
+}
+
+export function classifyCall(call: ToolCall): { category: Category; patterns: string[] } | null {
   const meta = TOOL_META[call.name]
   if (!meta) return null
   const operand = typeof call.args[meta.key] === 'string' ? (call.args[meta.key] as string) : ''
   if (meta.category === 'shell') {
     return { category: 'shell', patterns: splitCommand(operand).map((sub) => `Bash(${sub})`) }
   }
-  const prefix = meta.category === 'edit' ? 'Edit' : 'Read'
-  return { category: meta.category, patterns: [`${prefix}(${operand})`] }
+  return { category: meta.category, patterns: [`${PATTERN_PREFIX[meta.category]}(${operand})`] }
 }
 
 // Default decision when no rule matched: reads are allowed (except `.env*`),
-// shell commands are allowed only when every subcommand is read-only, and
-// everything else is asked. A compound line is classified by its most
-// privileged subcommand, so a benign prefix can't launder a destructive one.
-function defaultDecision(category: 'shell' | 'edit' | 'read', patterns: string[]): Decision {
+// shell commands are allowed only when every subcommand is read-only, web
+// calls always ask (no readonly-style allowlist for arbitrary network
+// egress), and everything else is asked. A compound shell line is classified
+// by its most privileged subcommand, so a benign prefix can't launder a
+// destructive one.
+function defaultDecision(category: Category, patterns: string[]): Decision {
   if (category === 'read') {
     const blocked = patterns.some((p) => (parseToolPattern(p)?.operand ?? '').endsWith('.env'))
     return blocked ? 'deny' : 'allow'
@@ -87,7 +99,7 @@ function finalize(
   decision: Decision,
   mode: Mode,
   isInteractive: boolean,
-  category: 'shell' | 'edit' | 'read',
+  category: Category,
   breakerForced: boolean,
   command: string,
 ): Decision {
@@ -98,6 +110,8 @@ function finalize(
       const subs = splitCommand(command)
       return subs.length > 0 && subs.every((c) => isReadonlyCommand(c)) ? 'allow' : 'deny'
     }
+    // read and web are both non-mutating, so plan mode allows them through
+    // like any other read (subject to an explicit deny rule, handled above).
     return 'allow'
   }
   if (mode === 'auto') return breakerForced ? 'ask' : 'allow'
@@ -111,7 +125,7 @@ function finalize(
 export function evaluateCall(opts: EvaluateOptions): Decision {
   const classified = classifyCall(opts.call)
   // Unmapped tool: deny in plan, otherwise ask (gated).
-  const category: 'shell' | 'edit' | 'read' = classified?.category ?? 'edit'
+  const category: Category = classified?.category ?? 'edit'
   const patterns = classified?.patterns ?? []
 
   const command = typeof opts.call.args.command === 'string' ? opts.call.args.command : ''
@@ -122,7 +136,7 @@ export function evaluateCall(opts: EvaluateOptions): Decision {
 
   let result: Decision | null = decision
   let breakerForced = false
-  if (category === 'shell' && SHELL_BREAKERS.some((b) => b(command))) {
+  if (category === 'shell' && shellBreakers.some((b) => b(command))) {
     if (result !== 'deny') {
       result = 'ask'
       breakerForced = true

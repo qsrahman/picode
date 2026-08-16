@@ -19,6 +19,7 @@ export const permissionSchema = z.object({
   shell: toolRulesSchema,
   edit: toolRulesSchema,
   read: toolRulesSchema,
+  web: toolRulesSchema,
 })
 export type Permission = z.infer<typeof permissionSchema>
 
@@ -29,6 +30,7 @@ export const filePermissionSchema = z
     shell: toolRulesSchema.partial().optional(),
     edit: toolRulesSchema.partial().optional(),
     read: toolRulesSchema.partial().optional(),
+    web: toolRulesSchema.partial().optional(),
   })
   .partial()
   .optional()
@@ -37,6 +39,7 @@ export const defaultPermission: Permission = {
   shell: emptyToolRules,
   edit: emptyToolRules,
   read: emptyToolRules,
+  web: emptyToolRules,
 }
 
 // All fields are required: defaults are merged in config.ts before parsing, so
@@ -46,6 +49,7 @@ export const configSchema = z.object({
   model: z.string().min(1),
   baseURL: z.string().min(1),
   apiKeyEnv: z.string().min(1),
+  braveSearchApiKeyEnv: z.string().min(1),
   instructions: z.string(),
   root: z.string().min(1),
   additionalDirs: z.array(z.string().min(1)),

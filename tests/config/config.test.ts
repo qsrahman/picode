@@ -188,6 +188,7 @@ describe('resolveConfig', () => {
       shell: { allow: [], ask: [], deny: [] },
       edit: { allow: [], ask: [], deny: [] },
       read: { allow: [], ask: [], deny: [] },
+      web: { allow: [], ask: [], deny: [] },
     })
   })
 
@@ -218,6 +219,35 @@ describe('resolveConfig', () => {
     expect(config.permission.shell.allow).toEqual(['Bash(pnpm test *)'])
     expect(config.permission.shell.ask).toEqual([])
     expect(config.permission.shell.deny).toEqual([])
+  })
+
+  it('merges a partial web rule list without wiping the others', () => {
+    writeFileSync(
+      projectPath,
+      JSON.stringify({ permission: { web: { deny: ['Web(https://internal.corp/**)'] } } }),
+    )
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission.web.deny).toEqual(['Web(https://internal.corp/**)'])
+    expect(config.permission.web.allow).toEqual([])
+    expect(config.permission.shell).toEqual({ allow: [], ask: [], deny: [] })
+  })
+
+  it('defaults braveSearchApiKeyEnv and lets it be overridden by a project config', () => {
+    const withDefault = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(withDefault.braveSearchApiKeyEnv).toBe('BRAVE_SEARCH_API_KEY')
+
+    writeFileSync(projectPath, JSON.stringify({ braveSearchApiKeyEnv: 'MY_SEARCH_KEY' }))
+    const overridden = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(overridden.braveSearchApiKeyEnv).toBe('MY_SEARCH_KEY')
   })
 
   it('rejects a malformed permission rule list', () => {

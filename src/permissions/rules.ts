@@ -6,11 +6,12 @@ import { type Permission, type ToolRules } from '../config/schema.ts'
 // and is unit-testable in isolation.
 export type Decision = 'allow' | 'ask' | 'deny'
 
-type Category = 'shell' | 'edit' | 'read'
+type Category = 'shell' | 'edit' | 'read' | 'web'
 
-// Parse `Bash(cmd)` / `Edit(path)` / `Read(path)` into a category + operand.
-// Anything the permission config can't express yet (e.g. `mcp.*`) returns null
-// so the caller falls back to its default, rather than silently matching.
+// Parse `Bash(cmd)` / `Edit(path)` / `Read(path)` / `Web(url)` into a category
+// + operand. Anything the permission config can't express yet (e.g. `mcp.*`)
+// returns null so the caller falls back to its default, rather than silently
+// matching.
 export function parseToolPattern(input: string): { kind: Category; operand: string } | null {
   const m = /^([A-Za-z][\w.]*)\((.*)\)$/.exec(input.trim())
   if (!m) return null
@@ -19,6 +20,7 @@ export function parseToolPattern(input: string): { kind: Category; operand: stri
   if (name === 'Bash' || name === 'Shell') return { kind: 'shell', operand }
   if (name === 'Edit') return { kind: 'edit', operand }
   if (name === 'Read') return { kind: 'read', operand }
+  if (name === 'Web') return { kind: 'web', operand }
   return null
 }
 
@@ -96,7 +98,10 @@ export function evaluatePattern(toolPattern: string, rules: Permission): Decisio
   const parsed = parseToolPattern(toolPattern)
   if (!parsed) return null
   const category: ToolRules = rules[parsed.kind]
-  const isPath = parsed.kind !== 'shell'
+  // Filesystem patterns (Edit/Read) use path-glob semantics (`*` stops at a
+  // `/`); Bash and Web operands aren't nested paths, so a bare `*` crosses
+  // segments there too.
+  const isPath = parsed.kind === 'edit' || parsed.kind === 'read'
   const matches = (list: string[]): boolean =>
     list.some((rule) => {
       const rp = parseToolPattern(rule)
@@ -116,7 +121,7 @@ export function evaluatePattern(toolPattern: string, rules: Permission): Decisio
 export function matchRuleInList(toolPattern: string, list: string[]): string | null {
   const parsed = parseToolPattern(toolPattern)
   if (!parsed) return null
-  const isPath = parsed.kind !== 'shell'
+  const isPath = parsed.kind === 'edit' || parsed.kind === 'read'
   for (const rule of list) {
     const rp = parseToolPattern(rule)
     if (!rp || rp.kind !== parsed.kind) continue

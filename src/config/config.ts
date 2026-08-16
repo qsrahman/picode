@@ -10,6 +10,7 @@ export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
   model: 'gpt-5.6',
   baseURL: 'https://api.openai.com/v1',
   apiKeyEnv: 'OPENAI_API_KEY',
+  braveSearchApiKeyEnv: 'BRAVE_SEARCH_API_KEY',
   instructions: '',
   additionalDirs: [],
   mode: 'interactive',
@@ -113,6 +114,7 @@ export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions 
         shell: mergeToolRules(prevPermission.shell, filePerm.shell),
         edit: mergeToolRules(prevPermission.edit, filePerm.edit),
         read: mergeToolRules(prevPermission.read, filePerm.read),
+        web: mergeToolRules(prevPermission.web, filePerm.web),
       }
     }
   }

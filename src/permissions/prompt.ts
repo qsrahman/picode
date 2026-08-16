@@ -13,6 +13,12 @@ export function summaryOf(call: ToolCall, verbose: boolean): string {
     const shown = command.length > max ? `${command.slice(0, max)}…` : command
     return `shell: ${shown}`
   }
+  if (call.name === 'web_search' && typeof call.args.query === 'string') {
+    return `web_search: ${call.args.query}`
+  }
+  if (call.name === 'web_fetch' && typeof call.args.url === 'string') {
+    return `web_fetch: ${call.args.url}`
+  }
   return `${call.name}(${JSON.stringify(call.args)})`
 }
 
@@ -29,17 +35,17 @@ export interface ApprovalOutcome {
   approvedPatterns: string[]
 }
 
-// Interactive y/n/a prompt for an `ask` decision. Shows the tool, the matching
-// rule (so the user sees why it's gated), and the exact pattern an "always"
-// answer will record. Records approvals into the session cache.
+// Interactive y/n/a prompt for an `ask` decision. Shows the matching rule (so
+// the user sees why it's gated) and the exact pattern an "always" answer will
+// record — not the tool summary itself, which the caller's status line
+// already shows above this. Records approvals into the session cache.
 export async function promptForDecision(opts: {
   call: ToolCall
   rules: Permission
   approvals: ApprovalCache
   io: PromptIO
-  dim?: (s: string) => string
 }): Promise<ApprovalOutcome> {
-  const { call, rules, approvals, io, dim } = opts
+  const { call, rules, approvals, io } = opts
   const patterns = classifyCall(call)?.patterns ?? [`Unknown(${call.name})`]
   const rule =
     patterns
@@ -49,8 +55,6 @@ export async function promptForDecision(opts: {
       })
       .find(Boolean) ?? null
 
-  const label = dim ? dim(summaryOf(call, false)) : summaryOf(call, false)
-  io.print(label)
   io.print(`  Run? (y/n/a)${rule ? `  [rule: ${rule}]` : ''}`)
   io.print(`  'a' approves: ${patterns.join(', ')}`)
 
@@ -66,7 +70,6 @@ export interface AuthorizerIO {
   interactive: boolean
   question: (prompt: string) => Promise<string>
   print: (line: string) => void
-  dim?: (s: string) => string
 }
 
 // Compose the policy engine + prompt into the boolean gate the agent loop
@@ -94,7 +97,6 @@ export function createAuthorizer(opts: {
       rules: opts.rules,
       approvals: opts.approvals,
       io: { print: opts.io.print, question: opts.io.question },
-      dim: opts.io.dim,
     })
     return outcome.allow
   }
