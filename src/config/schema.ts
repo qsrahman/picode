@@ -27,6 +27,9 @@ export const permissionSchema = z.object({
   // A sub-agent can perform arbitrary writes/shell commands through its own
   // inner tool calls, so it gets its own category rather than reusing `edit`.
   agent: toolRulesSchema,
+  // todo only mutates session state, never the workspace, so it defaults to
+  // allow; grouped here so a deny (or ask) rule can still target `Todo(...)`.
+  todo: toolRulesSchema,
 })
 export type Permission = z.infer<typeof permissionSchema>
 
@@ -40,6 +43,7 @@ export const filePermissionSchema = z
     webSearch: toolRulesSchema.partial().optional(),
     webFetch: toolRulesSchema.partial().optional(),
     agent: toolRulesSchema.partial().optional(),
+    todo: toolRulesSchema.partial().optional(),
   })
   .partial()
   .optional()
@@ -51,6 +55,7 @@ export const defaultPermission: Permission = {
   webSearch: emptyToolRules,
   webFetch: emptyToolRules,
   agent: emptyToolRules,
+  todo: emptyToolRules,
 }
 
 // All fields are required: defaults are merged in config.ts before parsing, so

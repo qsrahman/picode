@@ -8,6 +8,23 @@ phase).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-16
+
+### Added
+
+- `todo` tool: a session-scoped checklist (`TodoStore` + `createTodoTool`)
+  with granular `add` / `update` / `complete` / `delete` / `list` actions;
+  every call returns the full `todo: done/total` snapshot so the agent keeps
+  multi-step work in sync across tool rounds. Cleared by `/reset`.
+- `todo` permission category (`Todo(pattern)` pattern), default `allow` in
+  every mode since it only mutates session state (never the workspace),
+  tunable via `deny`/`ask` rules.
+
+### Changed
+
+- The default system prompt now tells the model to track multi-step work with
+  `todo`.
+
 ## [0.5.0] - 2026-08-16
 
 ### Added

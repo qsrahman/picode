@@ -231,6 +231,37 @@ describe('evaluateCall — agent', () => {
   })
 })
 
+describe('evaluateCall — todo', () => {
+  it('allows by default in every mode (only session state, not the workspace)', () => {
+    expect(evalCall(call('todo', { action: 'add' }), defaultPermission, 'interactive')).toBe(
+      'allow',
+    )
+    expect(evalCall(call('todo', { action: 'list' }), defaultPermission, 'auto')).toBe('allow')
+    expect(evalCall(call('todo', { action: 'complete' }), defaultPermission, 'plan')).toBe('allow')
+  })
+
+  it('is allowed even when non-interactive (no prompt)', () => {
+    expect(evalCall(call('todo', { action: 'add' }), defaultPermission, 'interactive', false)).toBe(
+      'allow',
+    )
+  })
+
+  it('honors an explicit deny rule, beating allow even in auto mode', () => {
+    const rules = withRules({ todo: { allow: [], ask: [], deny: ['Todo(*)'] } })
+    expect(evalCall(call('todo', { action: 'add' }), rules, 'auto')).toBe('deny')
+  })
+
+  it('is allowed by default even for actions with no matching rule, unless denied', () => {
+    // todo defaults to allow, so a specific allow rule is redundant; only an
+    // explicit deny (or ask) rule changes behavior.
+    expect(evalCall(call('todo', { action: 'delete' }), defaultPermission, 'interactive')).toBe(
+      'allow',
+    )
+    const rules = withRules({ todo: { allow: [], ask: [], deny: ['Todo(delete)'] } })
+    expect(evalCall(call('todo', { action: 'delete' }), rules, 'interactive')).toBe('deny')
+  })
+})
+
 describe('ApprovalCache', () => {
   it('upgrades an ask to allow once approved', () => {
     const rules = withRules({ shell: { allow: [], ask: ['Bash(git *)'], deny: [] } })

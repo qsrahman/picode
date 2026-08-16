@@ -6,7 +6,7 @@ import { type Permission, type ToolRules } from '../config/schema.ts'
 // and is unit-testable in isolation.
 export type Decision = 'allow' | 'ask' | 'deny'
 
-type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch' | 'agent'
+type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch' | 'agent' | 'todo'
 
 // Parse `Bash(cmd)` / `Edit(path)` / `Read(path)` / `WebSearch(query)` /
 // `WebFetch(url)` / `Agent(description)` into a category + operand. Anything
@@ -23,6 +23,7 @@ export function parseToolPattern(input: string): { kind: Category; operand: stri
   if (name === 'WebSearch') return { kind: 'webSearch', operand }
   if (name === 'WebFetch') return { kind: 'webFetch', operand }
   if (name === 'Agent') return { kind: 'agent', operand }
+  if (name === 'Todo') return { kind: 'todo', operand }
   return null
 }
 

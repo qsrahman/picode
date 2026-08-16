@@ -5,12 +5,13 @@ Interacts with you one-shot or in a REPL, runs local tools (files, shell, git),
 streams output, and integrates MCP servers — all behind a declarative
 permission system.
 
-> **Status:** Phases 0–5 are done. Today `picode` holds one-shot and REPL
-> conversations, streams output, and runs a full local tool suite — file
-> read/write/edit/list/stat, a `run_command` shell, read-only git, web
-> search/fetch, and a headless `run_agent` sub-agent tool — behind a
-> declarative `allow`/`ask`/`deny` permission engine with interactive prompts
-> and `interactive` / `auto` / `plan` modes. MCP integration lands in Phase 6.
+> **Status:** Phases 0–5 and the Phase 7 `todo` tool are done. Today `picode`
+> holds one-shot and REPL conversations, streams output, and runs a full local
+> tool suite — file read/write/edit/list/stat, a `run_command` shell,
+> read-only git, web search/fetch, a `todo` checklist tool, and a headless
+> `run_agent` sub-agent tool — behind a declarative `allow`/`ask`/`deny`
+> permission engine with interactive prompts and `interactive` / `auto` / `plan`
+> modes. MCP integration lands in Phase 6.
 
 ## Requirements
 
@@ -71,7 +72,14 @@ plus `config.additionalDirs`); path traversal outside is blocked.
   already allowed by policy is silently refused instead of asking — only
   what an allow rule, the read-only shell default, or `auto`/`plan` mode
   already covers goes through. One level of nesting only — it can't call
-  `run_agent` itself.
+   `run_agent` itself.
+- `todo` — tracks a multi-step task as a checklist (`{ action, content?, id?,
+   status? }` with `add` / `update` / `complete` / `delete` / `list`). Every
+   call returns the full checklist (`todo: done/total` plus one line per item).
+   It only mutates session state, never the workspace, so it's allowed in every
+   mode without prompting; a `todo` permission rule can still deny it. The
+   checklist is cleared by `/reset`.
+
 
 Every tool call is gated by the [permission engine](#permission-model). Denied
 tools are hidden from the model's toolset; calls that are denied only for
@@ -84,10 +92,6 @@ to use this toolset correctly — notably to prefer `edit_file` over
 anything the edit didn't intend to touch, and when to delegate to
 `run_agent`. Setting `instructions` in a config file replaces this default
 wholesale rather than appending to it.
-
-Planned (Phase 7): a `todo` tool that lets the agent break a complex task into
-tracked subtasks (`pending` / `in_progress` / `done`) and keep them in sync
-across tool rounds.
 
 ### Tool approval
 
@@ -156,7 +160,8 @@ Config is merged in this order (later wins):
     "read":       { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
     "webSearch":  { "allow": ["WebSearch(*)"],  "ask": [], "deny": [] },
     "webFetch":   { "allow": [],                "ask": [], "deny": ["WebFetch(https://internal.corp/**)"] },
-    "agent":      { "allow": [],                "ask": [], "deny": [] }
+    "agent":      { "allow": [],                "ask": [], "deny": [] },
+    "todo":       { "allow": [],                "ask": [], "deny": [] }
   }
 }
 
@@ -183,11 +188,14 @@ explicit `--model` flag beats `OPENAI_DEFAULT_MODEL`.
 `picode` gates every tool call through a rule engine with `allow` / `ask` /
 `deny` buckets, evaluated **deny > ask > allow**. Rules use `Tool(pattern)`
 syntax (`Bash(pnpm test *)`, `Edit(src/**)`, `Read(.env)`,
-`WebSearch(*)`, `WebFetch(https://internal.corp/**)`, `Agent(fix the tests)`)
-— `web_search` and `web_fetch` are separate `webSearch`/`webFetch`
+`WebSearch(*)`, `WebFetch(https://internal.corp/**)`, `Agent(fix the tests)`,
+`Todo(add)`) — `web_search` and `web_fetch` are separate `webSearch`/`webFetch`
 categories, not one shared `web` bucket, so a rule can target one without
-also matching the other; `run_agent` gets its own `agent` category for the
-same reason. When a call needs approval you answer:
+also matching the other; `run_agent` gets its own `agent` category and `todo`
+its own `todo` category for the same reason. `read`, `webSearch`,
+`webFetch`, and `todo` default to **allow** (non-mutating — `todo` only
+touches session state), so a rule is needed only to *deny* them. When a call
+needs approval you answer:
 
 - `y` — allow once
 - `n` — deny
@@ -204,7 +212,7 @@ resolved `deny > ask > allow`.
 - **interactive** (default): prompts for anything not allowed by a rule
 - **auto** (`--auto`): auto-approves anything not explicitly denied
 - **plan**: read-only — file writes, shell commands, and `run_agent` are all
-  denied (read-only shell, file reads, and `web_search`/`web_fetch` are
+  denied (read-only shell, file reads, `web_search`/`web_fetch`, and `todo` are
   allowed, since they're non-mutating — `run_agent` isn't, since a sub-agent
   could write files or run shell commands through its own tool calls)
 
@@ -233,7 +241,7 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 | 4 | Web tools (`web_search`, `web_fetch`) | 🟢 done |
 | 5 | Sub-agent delegation tool (`run_agent`) | 🟢 done |
 | 6 | MCP integration | ⚪ not started |
-| 7 | Todo tracking tool | ⚪ not started |
+| 7 | Todo tracking tool | 🟢 done (core; session tagging/persistence deferred to Phase 8) |
 | 8 | Session persistence, context trimming, parallelism | ⚪ not started |
 | 9 | Polish, automation, and advanced features | ⚪ future |
 

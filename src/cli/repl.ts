@@ -5,7 +5,9 @@ import type { Provider, ProviderItem } from '../agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from '../agent/agent.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
 import type { ToolCall, ToolDefinition, ToolResult } from '../tools/types.ts'
+import type { TodoStore } from '../tools/todo.ts'
 import { decodeExitCode, excerptOf, runCommandName } from '../tools/shell.ts'
+import { todoToolName } from '../tools/todo.ts'
 import type { Palette } from '../utils/palette.ts'
 import { StreamWriter } from '../utils/stream.ts'
 import { isCommand, runCommand } from './commands.ts'
@@ -24,6 +26,7 @@ export interface ReplOptions {
   registry: ToolRegistry
   tools: ToolDefinition[]
   approvals: ApprovalCache
+  todos?: TodoStore
 }
 
 // A submitted line continues onto the next prompt when it ends in a backslash
@@ -156,6 +159,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     },
     resetConversation: () => {
       conversation = []
+      opts.todos?.clear()
       saveHistory(opts.historyFile, [])
     },
     exit: () => {
@@ -252,6 +256,13 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
 
   const onToolResult = (call: ToolCall, result: ToolResult, ms: number): void => {
     const seconds = `${(ms / 1000).toFixed(1)}s`
+    if (call.name === todoToolName) {
+      // Surface the live checklist count (todo: N/M done) on the settled line
+      // instead of a bare "done", so progress stays visible at a glance.
+      const count = /^todo: \d+\/\d+ done/.exec(result.output)
+      writer.endStatus(palette.promptMuted(`${count ? count[0] : 'updated'} (${seconds})`))
+      return
+    }
     if (call.name !== runCommandName) {
       writer.endStatus(palette.promptMuted(`✓ done (${seconds})`))
       return

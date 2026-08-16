@@ -254,6 +254,12 @@ conversation.
   can write files or run shell commands. It runs headless (D11): its inner
   calls are gated non-interactively, so anything not already allowed is
   silently refused rather than popping a nested prompt.
+- **Todo tool (Phase 7):** `todo` gets its own `todo` category
+  (`Todo(pattern)`) rather than reusing `edit`. It **defaults to `allow`** in
+  every mode — like `read`/`webSearch`/`webFetch` it only mutates session
+  state, never the workspace, so it isn't a write to gate. A `deny` (or
+  `ask`) rule can still target it (`Todo(*)`, `Todo(delete)`). It runs
+  unprompted in `plan` mode, and `/reset` clears the in-memory checklist.
 
 ### CLI UI/UX
 
@@ -607,29 +613,32 @@ through the same permission engine.
 
 ---
 
-### Phase 7 — Todo tracking tool ⚪ not started
+### Phase 7 — Todo tracking tool 🟢 done (core)
 
 **Goal:** the agent can plan complex work into tracked subtasks and keep them
 synchronized across tool rounds.
 
-#### Todo tool (task planning & tracking)
+#### Todo tool (task planning & tracking) — done
 
-- [ ] `tools/todo.ts`: `TodoItem { id, content, status }` (`pending` |
+- [x] `tools/todo.ts`: `TodoItem { id, content, status }` (`pending` |
       `in_progress` | `done`), `TodoStore` (session-scoped; add/update/
       complete/delete/list; monotonic ids never reused; snapshot rendering)
-- [ ] `createTodoTool({ store })`: single `todo` tool, granular actions —
+- [x] `createTodoTool({ store })`: single `todo` tool, granular actions —
       `add`/`update`/`complete`/`delete`/`list`; semantic validation per
       action in `execute` (schema.ts supports no unions)
-- [ ] Every action returns the full snapshot (`todo: <done>/<total> done` +
+- [x] Every action returns the full snapshot (`todo: <done>/<total> done` +
       `[x] #<id> <content>` lines); the loop's `function_call_output`
       threading keeps the model synchronized — no `agent.ts` changes
-- [ ] Wiring: store created per session in `index.ts`, injected by closure
+- [x] Wiring: store created per session in `index.ts`, injected by closure
       (shell pattern); `/reset` clears it; ~50-item cap
-- [ ] REPL: settle `› todo: N/M done` status line per change; `--verbose`
+- [x] REPL: settle `› todo: N/M done` status line per change; `--verbose`
       prints the full list
-- [ ] Approval: same `requestApproval` path as every tool; rules can tune it
+- [x] Approval: same `requestApproval` path as every tool; `todo` gets its own
+      permission category (`Todo(pattern)`) that **defaults to `allow`** in
+      every mode (it only mutates session state, never the workspace), tunable
+      via a `deny`/`ask` rule
 
-#### Usability enhancements (high-impact, low-effort)
+#### Usability enhancements (high-impact, low-effort) — deferred to Phase 8
 
 - [ ] **Session tagging & metadata:** support `--session=<name>` flag to
       organize related work; store session name + created/modified timestamps
@@ -637,15 +646,19 @@ synchronized across tool rounds.
       update `cli/history.ts` to support tagged sessions; ~40 LOC
 - [ ] **Persistent todo state (session-scoped):** todo store survives across
       REPL sessions with the same `--session` tag; serialize/restore state
-      alongside conversation history; ~30 LOC
+      alongside conversation history; ~30 LOC. **Deferred to Phase 8** — it
+      overlaps that phase's session-persistence/`--resume` work, so landing it
+      there avoids reworking the same serialization code now.
 
 - **Tests:** store ops (id reuse, cap); per-action validation; snapshot
-  format; status-line render (`ansis.strip`); session tagging and restore
-- **Docs:** update this file + `README.md` (tool list, UX, session tagging)
-- **Acceptance:** the agent breaks a multi-step prompt into subtasks, updates
-  progress as it works, and the status line stays in sync; the snapshot
-  survives across REPL turns; `/reset` clears it; sessions tagged with
-  `--session=<name>` organize related work and persist todos across restarts.
+  format; permission/policy wiring; config merge; system-prompt reference —
+  all green. (Session tagging/restore tests land with Phase 8.)
+- **Docs:** updated this file + `README.md` (tool list, UX, permission model,
+  roadmap) + `AGENTS.md` (module map, phase note).
+- **Acceptance (core):** the agent breaks a multi-step prompt into subtasks,
+  updates progress as it works, and the `› todo: N/M done` status line stays in
+  sync; the snapshot survives across REPL turns; `/reset` clears it; `todo`
+  runs unprompted in every mode; a `Todo(*)` deny rule blocks it.
 - **Commit** when green.
 
 ---

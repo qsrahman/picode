@@ -15,7 +15,7 @@ function withRules(rules: Partial<Permission>): Permission {
 }
 
 describe('parseToolPattern', () => {
-  it('parses the six configured categories', () => {
+  it('parses the seven configured categories', () => {
     expect(parseToolPattern('Bash(pnpm test)')).toEqual({ kind: 'shell', operand: 'pnpm test' })
     expect(parseToolPattern('Edit(src/a.ts)')).toEqual({ kind: 'edit', operand: 'src/a.ts' })
     expect(parseToolPattern('Read(.env)')).toEqual({ kind: 'read', operand: '.env' })
@@ -31,6 +31,7 @@ describe('parseToolPattern', () => {
       kind: 'agent',
       operand: 'fix the tests',
     })
+    expect(parseToolPattern('Todo(add)')).toEqual({ kind: 'todo', operand: 'add' })
   })
 
   it('rejects malformed or unknown patterns', () => {
@@ -93,6 +94,15 @@ describe('evaluatePattern precedence', () => {
   it('matches the right category only', () => {
     const rules = withRules({ shell: { allow: ['Bash(*)'], ask: [], deny: [] } })
     expect(evaluatePattern('Edit(src/x)', rules)).toBeNull()
+  })
+
+  it('evaluates Todo patterns against the todo category', () => {
+    const rules = withRules({
+      todo: { allow: ['Todo(add)', 'Todo(list)'], ask: [], deny: ['Todo(delete)'] },
+    })
+    expect(evaluatePattern('Todo(add)', rules)).toBe('allow')
+    expect(evaluatePattern('Todo(delete)', rules)).toBe('deny')
+    expect(evaluatePattern('Todo(complete)', rules)).toBeNull()
   })
 
   it('matches WebFetch patterns using crossSlash globs', () => {

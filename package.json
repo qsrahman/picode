@@ -1,6 +1,6 @@
 {
   "name": "picode",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Model-agnostic AI coding agent built on the OpenAI Responses API",
   "type": "module",
   "license": "MIT",

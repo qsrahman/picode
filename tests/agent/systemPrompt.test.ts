@@ -17,6 +17,7 @@ describe('DEFAULT_INSTRUCTIONS', () => {
       'web_search',
       'web_fetch',
       'run_agent',
+      'todo',
     ]
     for (const tool of tools) {
       expect(DEFAULT_INSTRUCTIONS).toContain(tool)
@@ -33,5 +34,10 @@ describe('DEFAULT_INSTRUCTIONS', () => {
   it('tells the model run_agent cannot ask for approval or spawn further sub-agents', () => {
     expect(DEFAULT_INSTRUCTIONS).toContain('run_agent')
     expect(DEFAULT_INSTRUCTIONS.toLowerCase()).toContain('spawn further sub-agents')
+  })
+
+  it('tells the model to track multi-step work with todo', () => {
+    expect(DEFAULT_INSTRUCTIONS).toContain('todo')
+    expect(DEFAULT_INSTRUCTIONS.toLowerCase()).toContain('tracked checklist')
   })
 })

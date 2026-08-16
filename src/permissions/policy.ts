@@ -12,7 +12,7 @@ import {
   type Decision,
 } from './rules.ts'
 
-type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch' | 'agent'
+type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch' | 'agent' | 'todo'
 
 // Tool name → permission category + the args key holding the operand. Populated
 // as tools land: `run_command` now; fs/git tools extend it in their slice. An
@@ -37,6 +37,9 @@ const TOOL_META: Record<string, { category: Category; key: string }> = {
   web_search: { category: 'webSearch', key: 'query' },
   web_fetch: { category: 'webFetch', key: 'url' },
   run_agent: { category: 'agent', key: 'description' },
+  // todo only mutates session state, never the workspace, so it defaults to
+  // allow (like read) and is allowed in plan mode; a deny rule can still block it.
+  todo: { category: 'todo', key: 'action' },
 }
 
 // Session-only approvals recorded by the prompt ('a' answer). A pattern added
@@ -69,6 +72,7 @@ const PATTERN_PREFIX: Record<Category, string> = {
   webSearch: 'WebSearch',
   webFetch: 'WebFetch',
   agent: 'Agent',
+  todo: 'Todo',
 }
 
 export function classifyCall(call: ToolCall): { category: Category; patterns: string[] } | null {
@@ -88,6 +92,7 @@ export function classifyCall(call: ToolCall): { category: Category; patterns: st
 // classified by its most privileged subcommand, so a benign prefix can't
 // launder a destructive one.
 function defaultDecision(category: Category, patterns: string[]): Decision {
+  if (category === 'todo') return 'allow'
   if (category === 'read') {
     const blocked = patterns.some((p) => (parseToolPattern(p)?.operand ?? '').endsWith('.env'))
     return blocked ? 'deny' : 'allow'

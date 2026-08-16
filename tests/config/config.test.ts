@@ -191,6 +191,7 @@ describe('resolveConfig', () => {
       webSearch: { allow: [], ask: [], deny: [] },
       webFetch: { allow: [], ask: [], deny: [] },
       agent: { allow: [], ask: [], deny: [] },
+      todo: { allow: [], ask: [], deny: [] },
     })
   })
 
@@ -250,6 +251,17 @@ describe('resolveConfig', () => {
     expect(config.permission.agent.ask).toEqual([])
     expect(config.permission.agent.deny).toEqual([])
     expect(config.permission.edit).toEqual({ allow: [], ask: [], deny: [] })
+  })
+
+  it('merges a partial todo rule list without wiping the others', () => {
+    writeFileSync(projectPath, JSON.stringify({ permission: { todo: { deny: ['Todo(delete)'] } } }))
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission.todo.deny).toEqual(['Todo(delete)'])
+    expect(config.permission.todo.allow).toEqual([])
+    expect(config.permission.agent).toEqual({ allow: [], ask: [], deny: [] })
   })
 
   it('defaults braveSearchApiKeyEnv and lets it be overridden by a project config', () => {

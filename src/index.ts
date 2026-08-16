@@ -16,6 +16,7 @@ import { createFsTools } from './tools/fs.ts'
 import { createGitTools } from './tools/git.ts'
 import { createWebTools } from './tools/web.ts'
 import { createAgentTool } from './tools/agent.ts'
+import { TodoStore, createTodoTool } from './tools/todo.ts'
 import { ApprovalCache, toolsetForModel } from './permissions/policy.ts'
 import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
@@ -86,6 +87,8 @@ async function main(): Promise<void> {
     registry.register(tool)
   }
   registry.register(createAgentTool({ provider, registry, config, approvals }))
+  const todos = new TodoStore()
+  registry.register(createTodoTool({ store: todos }))
   const tools = toolsetForModel(registry, config.permission, config.mode)
 
   if (args.prompt) {
@@ -134,6 +137,7 @@ async function main(): Promise<void> {
     registry,
     tools,
     approvals,
+    todos,
   })
 }
 

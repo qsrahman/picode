@@ -64,7 +64,8 @@ src/
   config/           zod schema + load/merge/validate
   agent/            provider (OpenAI impl) + agent loop + default system prompt
   tools/            Tool interface, zod→JSON schema, registry, shell, fs, git,
-                    web (search/fetch) + netGuard (SSRF guard), agent (run_agent)
+                    web (search/fetch) + netGuard (SSRF guard), agent (run_agent),
+                    todo (checklist, session-scoped)
   utils/            palette + streaming/status writer
 tests/              mirrors src/ 1:1
 ```
@@ -85,6 +86,13 @@ tests/              mirrors src/ 1:1
 > sub-agent that reuses `agent/agent.ts`'s `runTurn` — and the permission
 > engine's `agent` category (`Agent(pattern)`, default `ask`, denied outright
 > in `plan` mode) are implemented.
+
+> Phase 7 (core) is done: `tools/todo.ts` (`todo`) — an in-memory,
+> session-scoped checklist (`TodoStore` + `createTodoTool`, cleared on
+> `/reset`) — and the permission engine's `todo` category (`Todo(pattern)`,
+> default `allow` in every mode since it only mutates session state, tunable
+> via a `deny` rule) are implemented. Session tagging / persistent todo state
+> is deferred to Phase 8.
 
 ## Testing
 
