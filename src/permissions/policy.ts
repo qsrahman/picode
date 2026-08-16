@@ -1,5 +1,6 @@
 import type { Mode, Permission } from '../config/schema.ts'
-import type { ToolCall } from '../tools/types.ts'
+import type { ToolCall, ToolDefinition } from '../tools/types.ts'
+import type { ToolRegistry } from '../tools/registry.ts'
 import { destructiveBreaker } from './breaker.ts'
 import { isReadonlyCommand } from './readonly.ts'
 import { combineDecisions, evaluatePattern, parseToolPattern, splitCommand, type Decision } from './rules.ts'
@@ -122,4 +123,19 @@ export function evaluateCall(opts: EvaluateOptions): Decision {
   }
 
   return finalize(result ?? 'deny', opts.mode, opts.isInteractive, category, breakerForced, command)
+}
+
+// Tools the policy would always deny in the current mode are hidden from the
+// model's toolset; everything else stays visible (the loop's authorize() is the
+// hard backstop for calls that are denied only for specific arguments).
+export function toolsetForModel(registry: ToolRegistry, rules: Permission, mode: Mode): ToolDefinition[] {
+  return registry.descriptors().filter((tool) => {
+    const decision = evaluateCall({
+      call: { callId: '', name: tool.name, args: {} },
+      rules,
+      mode,
+      isInteractive: true,
+    })
+    return decision !== 'deny'
+  })
 }

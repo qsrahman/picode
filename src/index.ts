@@ -11,7 +11,7 @@ import { createProvider } from './agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from './agent/agent.ts'
 import { ToolRegistry } from './tools/registry.ts'
 import { createShellTool } from './tools/shell.ts'
-import { ApprovalCache } from './permissions/policy.ts'
+import { ApprovalCache, toolsetForModel } from './permissions/policy.ts'
 import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
 import { VERSION } from './version.ts'
@@ -63,7 +63,7 @@ async function main(): Promise<void> {
 
   const registry = new ToolRegistry()
   registry.register(createShellTool({ cwd: config.root, timeout: config.toolTimeout }))
-  const tools = registry.descriptors()
+  const tools = toolsetForModel(registry, config.permission, config.mode)
 
   if (args.prompt) {
     // One-shot is non-interactive: the engine resolves `ask` decisions to a

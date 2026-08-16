@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultPermission, type Permission } from '../../src/config/schema.ts'
 import type { ToolCall } from '../../src/tools/types.ts'
-import { ApprovalCache, evaluateCall } from '../../src/permissions/policy.ts'
+import { ApprovalCache, evaluateCall, toolsetForModel } from '../../src/permissions/policy.ts'
+import { ToolRegistry } from '../../src/tools/registry.ts'
+import { createShellTool } from '../../src/tools/shell.ts'
 
 function call(name: string, args: Record<string, unknown>): ToolCall {
   return { callId: 'c1', name, args }
@@ -102,5 +104,14 @@ describe('ApprovalCache', () => {
     const cache = new ApprovalCache()
     cache.add('Bash(rm -rf /)')
     expect(evalCall(call('run_command', { command: 'rm -rf /' }), rules, 'interactive')).toBe('deny')
+  })
+})
+
+describe('toolsetForModel', () => {
+  it('hides tools the policy denies in the current mode', () => {
+    const reg = new ToolRegistry()
+    reg.register(createShellTool({ cwd: process.cwd(), timeout: 0 }))
+    expect(toolsetForModel(reg, defaultPermission, 'auto').map((t) => t.name)).toContain('run_command')
+    expect(toolsetForModel(reg, defaultPermission, 'plan').map((t) => t.name)).not.toContain('run_command')
   })
 })
