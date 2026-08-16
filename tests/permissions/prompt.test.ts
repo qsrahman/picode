@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultPermission } from '../../src/config/schema.ts'
 import type { ToolCall } from '../../src/tools/types.ts'
 import { ApprovalCache } from '../../src/permissions/policy.ts'
-import { promptForDecision } from '../../src/permissions/prompt.ts'
+import { createAuthorizer, promptForDecision } from '../../src/permissions/prompt.ts'
 
 function call(name: string, args: Record<string, unknown>): ToolCall {
   return { callId: 'c1', name, args }
@@ -20,6 +20,33 @@ function fakeIo(answers: string[]) {
     },
   }
 }
+
+describe('createAuthorizer', () => {
+  it('allows/denies without prompting and only prompts on ask', async () => {
+    const rules = {
+      ...defaultPermission,
+      shell: { allow: [], ask: ['Bash(git *)'], deny: ['Bash(rm -rf *)'] },
+    }
+    const interactive = createAuthorizer({
+      rules,
+      mode: 'interactive',
+      approvals: new ApprovalCache(),
+      io: { interactive: true, question: async () => 'y', print: () => {} },
+    })
+    expect(await interactive(call('run_command', { command: 'ls' }))).toBe(true)
+    expect(await interactive(call('run_command', { command: 'rm -rf /' }))).toBe(false)
+    expect(await interactive(call('run_command', { command: 'git push' }))).toBe(true)
+
+    // Non-interactive: an unresolved `ask` resolves to a denial.
+    const nonInteractive = createAuthorizer({
+      rules,
+      mode: 'interactive',
+      approvals: new ApprovalCache(),
+      io: { interactive: false, question: async () => 'y', print: () => {} },
+    })
+    expect(await nonInteractive(call('run_command', { command: 'git push' }))).toBe(false)
+  })
+})
 
 describe('promptForDecision', () => {
   it('denies on n', async () => {

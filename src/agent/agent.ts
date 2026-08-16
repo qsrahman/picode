@@ -8,10 +8,11 @@ export interface RunOptions {
   controller?: AbortController
   tools?: ToolDefinition[]
   registry?: ToolRegistry
-  // Gates every tool call. Phase 3 swaps this for the rule engine; a missing
-  // hook (or a non-interactive caller that omits it) denies nothing, so the
-  // loop's tool execution is a no-op without an explicit registry + hook.
-  requestApproval?: (call: ToolCall) => Promise<boolean>
+  // Gates every tool call. Backed by the permission engine (permissions/):
+  // the caller composes policy + prompt into this boolean gate, so the loop
+  // stays free of permission/rules details. Missing hook → execute (the
+  // caller is expected to always supply one in real runs).
+  authorize?: (call: ToolCall) => Promise<boolean>
   // Status-line sink: called once per executed call so the CLI can settle a
   // running status line with ✓/✗ and the elapsed time.
   onToolResult?: (call: ToolCall, result: ToolResult, ms: number) => void
@@ -51,8 +52,8 @@ export async function runTurn(
     items.push(...final.items)
     for (const call of calls) {
       let output: string
-      if (options.requestApproval && !(await options.requestApproval(call))) {
-        output = 'tool call denied by user'
+      if (options.authorize && !(await options.authorize(call))) {
+        output = 'tool call denied'
       } else if (options.registry) {
         const started = Date.now()
         const result = await options.registry.execute(call)

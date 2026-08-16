@@ -11,7 +11,8 @@ import { StreamWriter } from '../utils/stream.ts'
 import { isCommand, runCommand } from './commands.ts'
 import { messageOf } from '../errors.ts'
 import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
-import { approvalKey, summaryOf, applyApprovalAnswer } from './approval.ts'
+import { ApprovalCache, evaluateCall } from '../permissions/policy.ts'
+import { promptForDecision, summaryOf } from '../permissions/prompt.ts'
 
 export interface ReplOptions {
   provider: Provider
@@ -162,7 +163,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     mode: config.mode,
   }
 
-  const sessionApprovals = new Set<string>()
+  const approvals = new ApprovalCache()
   // Set when a tool status line has started this turn; onText uses it to
   // separate the settled status line from the final answer text.
   let toolSettled = false
@@ -181,26 +182,37 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     })
   }
 
-  // Injected into the agent loop: approve by mode, remember session approvals,
-  // and prompt interactively only when actually at a terminal.
-  const requestApproval = async (call: ToolCall): Promise<boolean> => {
-    if (config.mode === 'plan') {
-      process.stdout.write(`\n${palette.tool('✗ denied (plan mode)')}\n`)
+  // Injected into the agent loop: evaluate the call through the permission
+  // engine, prompt interactively only at a terminal, and surface policy
+  // denials (plan mode, deny rules) as a status line.
+  const authorize = async (call: ToolCall): Promise<boolean> => {
+    const decision = evaluateCall({
+      call,
+      rules: config.permission,
+      mode: config.mode,
+      isInteractive: isTerminal,
+      approvals,
+    })
+    if (decision === 'allow') return true
+    if (decision === 'deny') {
+      process.stdout.write(`\n${palette.tool('✗ denied')}\n`)
       return false
     }
-    if (config.mode === 'interactive' && !isTerminal) {
-      process.stdout.write(`\n${palette.tool('✗ denied (non-interactive)')}\n`)
-      return false
-    }
-    const key = approvalKey(call)
-    const sessionOk = sessionApprovals.has(key)
     writer.startStatus(summaryOf(call, opts.args.verbose))
     toolSettled = true
-    if (config.mode === 'auto' || sessionOk) return true
+    if (!isTerminal) {
+      writer.endStatus(palette.tool('✗ denied (non-interactive)'))
+      return false
+    }
     writer.pauseStatus()
-    const answer = await askApproval()
-    const approved = applyApprovalAnswer(answer, key, sessionApprovals)
-    if (approved) {
+    const outcome = await promptForDecision({
+      call,
+      rules: config.permission,
+      approvals,
+      io: { print: (l) => process.stdout.write(`${l}\n`), question: askApproval },
+      dim: palette.promptMuted,
+    })
+    if (outcome.allow) {
       writer.resumeStatus()
       return true
     }
@@ -271,7 +283,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
           streamedText = true
           lastDeltaNewline = delta.endsWith('\n')
         },
-        requestApproval,
+        authorize,
         onToolResult,
       })
       conversation = result.items

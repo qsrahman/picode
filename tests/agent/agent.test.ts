@@ -167,7 +167,7 @@ describe('runTurn', () => {
       input: z.object({ cmd: z.string() }),
       execute: async () => 'executed',
     })
-    const requestApproval = vi.fn(async () => false)
+    const authorize = vi.fn(async () => false)
     const provider = fakeProvider([
       {
         deltas: [],
@@ -181,13 +181,13 @@ describe('runTurn', () => {
       },
     ])
 
-    const result = await runTurn(provider, [], 'run ls', { registry, requestApproval })
+    const result = await runTurn(provider, [], 'run ls', { registry, authorize })
 
-    expect(requestApproval).toHaveBeenCalledWith({ callId: 'c1', name: 'run', args: { cmd: 'ls' } })
+    expect(authorize).toHaveBeenCalledWith({ callId: 'c1', name: 'run', args: { cmd: 'ls' } })
     expect(result.items).toContainEqual({
       type: 'function_call_output',
       call_id: 'c1',
-      output: 'tool call denied by user',
+      output: 'tool call denied',
     })
     expect(result.text).toBe('skipped')
   })

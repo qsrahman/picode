@@ -11,6 +11,8 @@ import { createProvider } from './agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from './agent/agent.ts'
 import { ToolRegistry } from './tools/registry.ts'
 import { createShellTool } from './tools/shell.ts'
+import { ApprovalCache } from './permissions/policy.ts'
+import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
 import { VERSION } from './version.ts'
 
@@ -64,15 +66,22 @@ async function main(): Promise<void> {
   const tools = registry.descriptors()
 
   if (args.prompt) {
-    // Non-interactive: only --yes (mode auto) approves tool calls; anything
-    // else auto-denies instead of prompting.
+    // One-shot is non-interactive: the engine resolves `ask` decisions to a
+    // denial (no prompt), while `allow`/`deny` follow the rules and mode.
+    const approvals = new ApprovalCache()
+    const authorize = createAuthorizer({
+      rules: config.permission,
+      mode: config.mode,
+      approvals,
+      io: { interactive: false, question: async () => 'n', print: () => {} },
+    })
     const result = await runTurn(provider, [], args.prompt, {
       tools,
       registry,
       onText: (delta) => {
         if (!args.noStream) process.stdout.write(delta)
       },
-      requestApproval: async () => config.mode === 'auto',
+      authorize,
     })
     if (args.noStream && result.text) process.stdout.write(`${result.text}\n`)
     if (result.truncated) {

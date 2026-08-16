@@ -1,8 +1,20 @@
 import type { Permission } from '../config/schema.ts'
+import type { Mode } from '../config/schema.ts'
 import type { ToolCall } from '../tools/types.ts'
-import { ApprovalCache, classifyCall } from './policy.ts'
-import { matchRuleInList, parseToolPattern } from './rules.ts'
-import { summaryOf } from '../cli/approval.ts'
+import { runCommandName } from '../tools/shell.ts'
+import { ApprovalCache, classifyCall, evaluateCall } from './policy.ts'
+import { matchRuleInList, parseToolPattern, type Decision } from './rules.ts'
+
+// One-line tool label for status lines and the approval prompt.
+export function summaryOf(call: ToolCall, verbose: boolean): string {
+  if (call.name === runCommandName && typeof call.args.command === 'string') {
+    const command = call.args.command
+    const max = verbose ? Infinity : 80
+    const shown = command.length > max ? `${command.slice(0, max)}…` : command
+    return `shell: ${shown}`
+  }
+  return `${call.name}(${JSON.stringify(call.args)})`
+}
 
 export interface PromptIO {
   print: (line: string) => void
@@ -48,4 +60,42 @@ export async function promptForDecision(opts: {
     return { allow: true, approvedPatterns: patterns }
   }
   return { allow: answer === 'y', approvedPatterns: [] }
+}
+
+export interface AuthorizerIO {
+  interactive: boolean
+  question: (prompt: string) => Promise<string>
+  print: (line: string) => void
+  dim?: (s: string) => string
+}
+
+// Compose the policy engine + prompt into the boolean gate the agent loop
+// expects. Callers inject IO: the REPL backs `question` with its input capture
+// and wraps it in status-line pause/resume; one-shot passes a non-interactive
+// IO so `ask` decisions resolve to a denial.
+export function createAuthorizer(opts: {
+  rules: Permission
+  mode: Mode
+  approvals: ApprovalCache
+  io: AuthorizerIO
+}): (call: ToolCall) => Promise<boolean> {
+  return async (call) => {
+    const decision: Decision = evaluateCall({
+      call,
+      rules: opts.rules,
+      mode: opts.mode,
+      isInteractive: opts.io.interactive,
+      approvals: opts.approvals,
+    })
+    if (decision === 'allow') return true
+    if (decision === 'deny') return false
+    const outcome = await promptForDecision({
+      call,
+      rules: opts.rules,
+      approvals: opts.approvals,
+      io: { print: opts.io.print, question: opts.io.question },
+      dim: opts.io.dim,
+    })
+    return outcome.allow
+  }
 }
