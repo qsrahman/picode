@@ -560,10 +560,18 @@ without opening the door to nested/runaway multi-agent orchestration.
 - [x] `agent/systemPrompt.ts`: `DEFAULT_INSTRUCTIONS` tells the model when to
       delegate to `run_agent` and that it can't request approval mid-task or
       spawn further sub-agents.
+- [x] **Follow-up (landed with Phase 7's `todo` tool):** `run_agent` builds a
+      sub-registry rather than reusing the parent's directly — every
+      workspace/network tool is still shared (same filesystem, shell, git
+      repo), but `todo` is session state, not workspace state, so a fresh
+      `TodoStore` is swapped in when the parent has one. A sub-agent can plan
+      its own delegated task with its own checklist but never sees or
+      mutates the parent's.
 
 - **Tests:** `tools/agent.test.ts` (isolated conversation, recursion guard,
    inner-call denial without prompting, inner-call allow-rule reuse, output
-   capping, input validation); `permissions/rules.test.ts` + `policy.test.ts`
+   capping, input validation, todo-list isolation from the parent);
+   `permissions/rules.test.ts` + `policy.test.ts`
    (`Agent(...)` pattern parsing, default `ask`, plan-mode denial,
    `denyReason`); `config/config.test.ts` (`permission.agent` merge);
    `agent/systemPrompt.test.ts` (tool named, delegation guidance present).
@@ -637,6 +645,9 @@ synchronized across tool rounds.
       permission category (`Todo(pattern)`) that **defaults to `allow`** in
       every mode (it only mutates session state, never the workspace), tunable
       via a `deny`/`ask` rule
+- [x] `tools/agent.ts` (Phase 5's `run_agent`) updated in the same effort: a
+      sub-agent now gets its own isolated `TodoStore` instead of sharing (or
+      being excluded from) the parent's — see Phase 5's follow-up note.
 
 #### Usability enhancements (high-impact, low-effort) — deferred to Phase 8
 

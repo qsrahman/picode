@@ -5,6 +5,7 @@ import { createAgentTool, runAgentToolName } from '../../src/tools/agent.ts'
 import { ApprovalCache } from '../../src/permissions/policy.ts'
 import { defaultPermission, type Config } from '../../src/config/schema.ts'
 import { ToolRegistry } from '../../src/tools/registry.ts'
+import { TodoStore, createTodoTool } from '../../src/tools/todo.ts'
 import type { Provider, ProviderItem, ProviderStream } from '../../src/agent/provider.ts'
 
 interface FakeResponse {
@@ -189,6 +190,61 @@ describe('run_agent', () => {
       createAgentTool({ provider, registry, config: baseConfig(), approvals: new ApprovalCache() }),
     )
     const tool = registry.get(runAgentToolName)!
+
+    await tool.execute({ description: 'x', prompt: 'y' })
+
+    expect(seenTools).toEqual([])
+  })
+
+  it("gives the sub-agent its own isolated todo list instead of the parent's", async () => {
+    const registry = new ToolRegistry()
+    const parentStore = new TodoStore()
+    parentStore.add('parent item')
+    registry.register(createTodoTool({ store: parentStore }))
+    const provider = fakeProvider([
+      {
+        items: [
+          {
+            type: 'function_call',
+            call_id: 'c1',
+            name: 'todo',
+            arguments: '{"action":"add","content":"sub item"}',
+          },
+        ],
+        text: '',
+      },
+      { items: [{ type: 'message', role: 'assistant', content: 'added' }], text: 'added' },
+    ])
+    const tool = createAgentTool({
+      provider,
+      registry,
+      config: baseConfig(),
+      approvals: new ApprovalCache(),
+    })
+
+    await tool.execute({ description: 'todo isolation', prompt: 'add a todo' })
+
+    // The sub-agent's add landed on its own store, not the parent's.
+    expect(parentStore.total).toBe(1)
+    expect(parentStore.list()[0]).toMatchObject({ content: 'parent item' })
+  })
+
+  it('does not offer a todo tool to the sub-agent when the parent has none', async () => {
+    const registry = new ToolRegistry()
+    let seenTools: unknown
+    const provider: Provider = {
+      model: 'fake',
+      stream: vi.fn(async (_input, options) => {
+        seenTools = options.tools
+        return toStream({ items: [], text: 'ok' })
+      }),
+    }
+    const tool = createAgentTool({
+      provider,
+      registry,
+      config: baseConfig(),
+      approvals: new ApprovalCache(),
+    })
 
     await tool.execute({ description: 'x', prompt: 'y' })
 

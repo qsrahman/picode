@@ -85,7 +85,10 @@ tests/              mirrors src/ 1:1
 > Phase 5 is done: `tools/agent.ts` (`run_agent`) — a headless, one-level-deep
 > sub-agent that reuses `agent/agent.ts`'s `runTurn` — and the permission
 > engine's `agent` category (`Agent(pattern)`, default `ask`, denied outright
-> in `plan` mode) are implemented.
+> in `plan` mode) are implemented. Its sub-registry shares every
+> workspace/network tool with the parent but swaps in a fresh `TodoStore` for
+> `todo` (if registered) — a sub-agent can plan its own delegated task with
+> its own checklist, but never sees or mutates the parent's.
 
 > Phase 7 (core) is done: `tools/todo.ts` (`todo`) — an in-memory,
 > session-scoped checklist (`TodoStore` + `createTodoTool`, cleared on

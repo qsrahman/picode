@@ -8,6 +8,17 @@ phase).
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-08-16
+
+### Fixed
+
+- `run_agent` sub-agents sharing the parent conversation's `todo` checklist.
+  A sub-agent now gets its own isolated `TodoStore` (swapped in when building
+  its sub-registry) — it can plan its own delegated task with `todo` without
+  seeing or mutating the parent's list, and vice versa. Every other tool
+  (filesystem, shell, git, web) is still shared, since those operate on the
+  real workspace rather than in-memory session state.
+
 ## [0.6.0] - 2026-08-16
 
 ### Added

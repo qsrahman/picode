@@ -72,13 +72,17 @@ plus `config.additionalDirs`); path traversal outside is blocked.
   already allowed by policy is silently refused instead of asking — only
   what an allow rule, the read-only shell default, or `auto`/`plan` mode
   already covers goes through. One level of nesting only — it can't call
-   `run_agent` itself.
+  `run_agent` itself. If `todo` is available, the sub-agent gets its own
+  isolated checklist instead of sharing (or being able to see) the parent
+  conversation's — every other tool (filesystem, shell, git, web) is shared,
+  since those operate on the real workspace rather than session state.
 - `todo` — tracks a multi-step task as a checklist (`{ action, content?, id?,
-   status? }` with `add` / `update` / `complete` / `delete` / `list`). Every
-   call returns the full checklist (`todo: done/total` plus one line per item).
-   It only mutates session state, never the workspace, so it's allowed in every
-   mode without prompting; a `todo` permission rule can still deny it. The
-   checklist is cleared by `/reset`.
+  status? }` with `add` / `update` / `complete` / `delete` / `list`). Every
+  call returns the full checklist (`todo: done/total` plus one line per item).
+  It only mutates session state, never the workspace, so it's allowed in every
+  mode without prompting; a `todo` permission rule can still deny it. The
+  checklist is cleared by `/reset`; a `run_agent` sub-agent gets its own
+  separate checklist rather than sharing this one.
 
 
 Every tool call is gated by the [permission engine](#permission-model). Denied

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Tool } from './types.ts'
-import type { ToolRegistry } from './registry.ts'
+import { ToolRegistry } from './registry.ts'
+import { TodoStore, createTodoTool, todoToolName } from './todo.ts'
 import type { Provider } from '../agent/provider.ts'
 import type { Config } from '../config/schema.ts'
 import { runTurn } from '../agent/agent.ts'
@@ -28,8 +29,8 @@ function cap(text: string): string {
 }
 
 // Registered once per process, so a plain closure variable is enough to stop
-// a sub-agent from re-entering run_agent — the toolset it's given already
-// excludes the tool, but a model can still hallucinate a call, so this is
+// a sub-agent from re-entering run_agent — the sub-registry it's given never
+// contains the tool, but a model can still hallucinate a call, so this is
 // the hard backstop.
 export function createAgentTool(ctx: AgentToolContext): Tool {
   let depth = 0
@@ -52,9 +53,24 @@ export function createAgentTool(ctx: AgentToolContext): Tool {
         return `${runAgentToolName} cannot be called from within a sub-agent task (nesting is not supported)`
       }
 
-      const subTools = toolsetForModel(ctx.registry, ctx.config.permission, ctx.config.mode).filter(
-        (t) => t.name !== runAgentToolName,
-      )
+      // A sub-agent shares every workspace/network tool with the parent (same
+      // filesystem, same shell, same git repo — there's nothing to isolate),
+      // but `todo` is session state, not workspace state, so it's swapped for
+      // a fresh instance rather than shared or excluded: the sub-agent gets
+      // its own checklist to plan its own delegated task with, and can't see
+      // or mutate the parent's. Mirrors the fresh (empty) conversation
+      // history every sub-agent call already gets.
+      const subRegistry = new ToolRegistry()
+      for (const name of ctx.registry.names()) {
+        if (name === runAgentToolName || name === todoToolName) continue
+        const t = ctx.registry.get(name)
+        if (t) subRegistry.register(t)
+      }
+      if (ctx.registry.get(todoToolName)) {
+        subRegistry.register(createTodoTool({ store: new TodoStore() }))
+      }
+
+      const subTools = toolsetForModel(subRegistry, ctx.config.permission, ctx.config.mode)
 
       // Headless: a sub-agent can't pop an interactive prompt, so an
       // unresolved `ask` decision auto-denies (same non-interactive IO the
@@ -72,7 +88,7 @@ export function createAgentTool(ctx: AgentToolContext): Tool {
       try {
         const result = await runTurn(ctx.provider, [], prompt, {
           tools: subTools,
-          registry: ctx.registry,
+          registry: subRegistry,
           authorize,
         })
         if (result.truncated) {
