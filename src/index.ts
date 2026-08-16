@@ -103,6 +103,7 @@ async function main(): Promise<void> {
     if (args.noStream && result.text) process.stdout.write(`${result.text}\n`)
     if (result.truncated) {
       process.stderr.write(`pcode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
+      process.exitCode = 3
     }
     if (denied) process.exitCode = 2
     return

@@ -5,10 +5,11 @@ Interacts with you one-shot or in a REPL, runs local tools (files, shell, git),
 streams output, and integrates MCP servers — all behind a declarative
 permission system.
 
-> **Status:** early development. Phases 0–2 are done: one-shot queries, the
-> interactive REPL, streaming output, and a function-calling loop with a local
-> `run_command` shell tool all work today. The full tool suite and the
-> permission rule engine land in Phases 3–4.
+> **Status:** Phases 0–3 are done. Today `pcode` holds one-shot and REPL
+> conversations, streams output, and runs a full local tool suite — file
+> read/write/list/stat, a `run_command` shell, and read-only git — behind a
+> declarative `allow`/`ask`/`deny` permission engine with interactive prompts
+> and `interactive` / `auto` / `plan` modes. MCP integration lands in Phase 4.
 
 ## Requirements
 
@@ -35,11 +36,22 @@ The model is selected with `--model` or the config file.
 
 ### Tools
 
-The agent can call local tools. Currently implemented: `run_command` — runs a
-shell command via `/bin/sh` in the workspace root (`config.root`), with a
-timeout (`config.toolTimeout`, default 30s) and capped output. The tool
-returns a text blob starting with `exit <code>` followed by truncated stdout
-and stderr; a timeout reports `exit 124`.
+The agent can call local tools, all confined to the workspace (`config.root`
+plus `config.additionalDirs`); path traversal outside is blocked.
+
+- `run_command` — runs a shell command via `/bin/sh` in the workspace root,
+  with a timeout (`config.toolTimeout`, default 30s) and capped output. Returns
+  a blob starting with `exit <code>` followed by truncated stdout/stderr; a
+  timeout reports `exit 124`.
+- `read_file` / `write_file` / `list_dir` / `stat` — file operations.
+  `write_file` creates parent directories and overwrites existing files.
+- `git_status` / `git_diff` / `git_log` / `git_show` — read-only git, run in
+  the workspace root.
+
+Every tool call is gated by the [permission engine](#permission-model). Denied
+tools are hidden from the model's toolset; calls that are denied only for
+specific arguments are hard-blocked at run time (the denial status line names
+the blocking rule or `plan mode`).
 
 Planned (Phase 5): a `todo` tool that lets the agent break a complex task into
 tracked subtasks (`pending` / `in_progress` / `done`) and keep them in sync
@@ -47,16 +59,15 @@ across tool rounds.
 
 ### Tool approval
 
-Before a tool call runs, the agent loop asks for approval:
+Before a tool call runs, the agent loop evaluates it through the permission
+engine:
 
-- **interactive terminal**: a `Run? (y/n/a)` prompt — `y` runs once, `n`
-  denies, `a` allows for the rest of the session
-- **`--yes` (auto mode)**: auto-approves
-- **`plan` mode**: denies
-- **non-interactive** (one-shot prompt, piped stdin): auto-denies
-
-Approvals are session-only until the Phase 3 rule engine (allow/ask/deny
-rules) replaces the prompt.
+- **`allow`** (by rule, read-only default, or `auto` mode): runs without asking
+- **`ask`**: prompts at an interactive terminal — `y` runs once, `n` denies,
+  `a` always allows (records the exact pattern, session-only for now)
+- **`deny`** (by rule or `plan` mode): blocked; status line shows the reason
+- **non-interactive** (one-shot prompt, piped stdin): an unresolved `ask`
+  resolves to a denial — no prompt
 
 ### Options
 
@@ -77,10 +88,11 @@ rules) replaces the prompt.
 
 `/help` `/model` `/mode` `/clear` `/reset` `/tools` `/exit`
 
-Available now (Phase 1): `/help` `/clear` `/reset` `/model` `/mode`
-(read-only) `/exit`. `/tools` and mode switching arrive with the permission
-engine (Phase 3). `/clear` clears the terminal; `/reset` wipes the current
-conversation.
+- `/mode` — show the current mode, or switch: `/mode auto` / `/mode plan` /
+  `/mode interactive`
+- `/tools` — list every tool with its effective permission (`allow` / `ask` /
+  `deny`) in the current mode
+- `/clear` clears the terminal; `/reset` wipes the current conversation
 
 ## Configuration
 
@@ -139,20 +151,30 @@ approval you answer:
 - `n` — deny
 - `a` — always allow (records the exact pattern, session-only for now)
 
-**Phase 3 (planned).** Today (Phase 2) approval is mode-based instead of
-rule-based: interactive terminals get the `Run? (y/n/a)` prompt, `--yes`
-auto-approves, `plan` denies, and non-interactive runs auto-deny (see
-[Tool approval](#tool-approval)). The rule engine replaces that prompt hook
-without touching the tools.
+**Phase 3 — live.** The rule engine replaces the mode-only prompt hook; the
+loop's `authorize()` is composed from `evaluateCall` + `promptForDecision`,
+so tools stay untouched. Rules use Claude-Code-style `Tool(pattern)` syntax
+(`Bash(pnpm test *)`, `Edit(src/**)`, `Read(.env)`, `mcp.<server>.<tool>`),
+resolved `deny > ask > allow`.
 
 ### Modes
 
 - **interactive** (default): prompts for anything not allowed by a rule
 - **auto** (`--yes`): auto-approves anything not explicitly denied
-- **plan**: read-only — file writes and non-read-only shell commands are denied
+- **plan**: read-only — file writes and shell commands are denied (read-only
+  shell and reads are allowed)
 
 Built-in read-only shell commands (`ls`, `cat`, `grep`, `git status`, …) run
 without prompting. Destructive/escaping commands still prompt even in `auto`.
+
+### Exit codes (one-shot)
+
+| Code | Meaning |
+| --- | --- |
+| `0` | success |
+| `1` | runtime/uncaught error |
+| `2` | a tool call was denied by policy |
+| `3` | tool-call limit reached (`MAX_TOOL_ROUNDS`) |
 
 ## Roadmap
 
@@ -163,7 +185,7 @@ See [`PLAN.md`](./PLAN.md) — the single source of truth for planning. Status:
 | 0 | Scaffold + docs | 🟢 done |
 | 1 | CLI parsing, config, plain chat | 🟢 done |
 | 2 | Streaming + tools + function-calling loop | 🟢 done |
-| 3 | Built-in tools + permission engine | ⚪ not started |
+| 3 | Built-in tools + permission engine | 🟢 done |
 | 4 | MCP integration | ⚪ not started |
 | 5 | Todo tracking, session persistence, context trimming, parallelism | ⚪ not started |
 

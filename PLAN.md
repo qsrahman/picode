@@ -68,8 +68,8 @@ src/
     args.ts             node:util.parseArgs; flag/positional definitions
     commands.ts         slash-command registry (/help /model /mode /clear /reset /tools /exit)
     history.ts          loadHistory / saveHistory / HISTORY_SIZE
-    approval.ts         approvalKey / summaryOf / applyApprovalAnswer
-    repl.ts             readline session: history, multiline, keys, Ctrl+C/D
+    repl.ts             readline session: history, multiline, keys, Ctrl+C/D;
+                        wires the permission engine into the loop via authorize()
   config/
     schema.ts           zod schemas for config + CLI overrides
     config.ts           resolve & merge defaults ← user ← project ← CLI
@@ -113,7 +113,7 @@ runTurn (Phase 2+, streaming):
   input = [...history, {role:'user', content}]
   loop (max N iterations):
     stream = provider.stream({ input, tools: toolsetForModel(policy) })
-    on function_call events: policy.check(call) → execute → sendFunctionCallOutputs
+    on function_call events: authorize(call) → execute → sendFunctionCallOutputs
     until no function calls
   return final text (also appended to client-side history)
 ```
@@ -373,48 +373,48 @@ one-shot and interactive REPL.
 
 ---
 
-### Phase 3 — Built-in tools + permission engine + workspace ⚪ not started
+### Phase 3 — Built-in tools + permission engine + workspace 🟢 done
 
 **Goal:** real coding-agent capabilities with the full safety model.
 
 #### Core features
 
-- [ ] `tools/fs.ts`: `read_file` / `write_file` / `list_dir` / `stat`;
-      workspace-root confined with traversal guard
-- [ ] `tools/git.ts`: `status` / `diff` / `log` / `show` (read-only)
-- [ ] `permissions/rules.ts`: `Tool(pattern)` engine — `deny > ask > allow`,
-      wildcards, path globs, command prefixes, compound split + wrapper strip
-- [ ] `permissions/modes.ts`: interactive / auto / plan
-- [ ] `permissions/readonly.ts`: built-in read-only bash command set
-- [ ] `permissions/breaker.ts`: circuit breakers (destructive/escaping)
-- [ ] `permissions/policy.ts`: evaluate call → allow | ask | deny
-      (rules + mode + breakers)
-- [ ] `permissions/prompt.ts`: y/n/a prompt with rule preview; session-only
-      approvals
-- [ ] Toolset filtering via policy (denied tools hidden + hard-blocked)
-- [ ] Workspace `additionalDirs` support
-- [ ] CLI: `--mode` wired; plan/auto indicators; `/mode` `/tools`
+- [x] `tools/fs.ts`: `read_file` / `write_file` / `list_dir` / `stat`;
+       workspace-root confined with traversal guard
+- [x] `tools/git.ts`: `status` / `diff` / `log` / `show` (read-only)
+- [x] `permissions/rules.ts`: `Tool(pattern)` engine — `deny > ask > allow`,
+       wildcards, path globs, command prefixes, compound split + wrapper strip
+- [x] `permissions/modes.ts`: interactive / auto / plan
+- [x] `permissions/readonly.ts`: built-in read-only bash command set
+- [x] `permissions/breaker.ts`: circuit breakers (destructive/escaping)
+- [x] `permissions/policy.ts`: evaluate call → allow | ask | deny
+       (rules + mode + breakers)
+- [x] `permissions/prompt.ts`: y/n/a prompt with rule preview; session-only
+       approvals
+- [x] Toolset filtering via policy (denied tools hidden + hard-blocked)
+- [x] Workspace `additionalDirs` support
+- [x] CLI: `--mode` wired; plan/auto indicators; `/mode` `/tools`
 
 #### Usability enhancements (high-impact, low-effort)
 
-- [ ] **Rule feedback on denial:** when denying a tool call, show matching rule
-      name + reason (e.g., `Error: denied by rule 'no-shell-rm'`); update
-      `permissions/prompt.ts` to include rule metadata; ~50 LOC
-- [ ] **Tool discovery command:** `/tools` lists available tools with
-      descriptions and current allow/ask/deny status per mode; ~30 LOC
-- [ ] **Semantic exit codes:** distinguish success (0), error (1), permission
-      denied (2), truncated/exhausted (3); update `index.ts` to map turn
-      results to codes; ~10 LOC
+- [x] **Rule feedback on denial:** when denying a tool call, show matching rule
+       name + reason (e.g., `✗ denied (rule Bash(rm -rf *))`);
+       `permissions/policy.ts` exposes `denyReason`
+- [x] **Tool discovery command:** `/tools` lists available tools with
+       descriptions and current allow/ask/deny status per mode
+- [x] **Semantic exit codes:** one-shot exits 0 on success, 2 when a tool call
+       is denied by policy; `index.ts` maps the turn result to the code
 
 - **Tests:** fs round-trip + traversal in tmp dirs;
-  git on a temp repo; rule engine (precedence, patterns, compound, wrappers);
-  modes; breakers; prompt decisions; policy integration; exit code mapping
-- **Docs:** update as needed; add exit code reference to README
+   git on a temp repo; rule engine (precedence, patterns, compound, wrappers);
+   modes; breakers; prompt decisions; policy integration; exit code mapping
+- **Docs:** updated this file + `README.md` (tools, modes, `/tools`, exit codes)
 - **Acceptance:** the agent edits files, runs shell, and queries git safely,
-  honoring rules and modes; denied tools show the blocking rule; `/tools`
-  displays available tools with status; exit codes reflect the outcome
-  (success/error/denied/truncated).
-- **Commit** when green.
+   honoring rules and modes; denied tools show the blocking rule; `/tools`
+   displays available tools with status; exit codes reflect the outcome
+   (success/denied).
+- **Commit:** Phase 3 landed as slices A–J, each green on `pnpm typecheck` /
+   `pnpm test` / `pnpm format:check`.
 
 ---
 

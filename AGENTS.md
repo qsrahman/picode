@@ -66,8 +66,11 @@ tests/              mirrors src/ 1:1
 ```
 
 > The following modules are planned (see PLAN.md), not yet present:
-> `tools/fs.ts` + `tools/git.ts` (Phase 3), `permissions/` rule engine +
-> modes/policy/prompt (Phase 3), and `mcp/` client + adapter (Phase 4).
+> `mcp/` client + adapter (Phase 4).
+
+> Phase 3 is done: `tools/fs.ts` + `tools/git.ts`, and the `permissions/`
+> engine (`rules.ts`, `modes.ts`, `readonly.ts`, `breaker.ts`, `policy.ts`,
+> `prompt.ts`) are implemented and wired into the loop via `authorize()`.
 
 ## Testing
 
