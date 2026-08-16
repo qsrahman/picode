@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { defaultPermission, type Permission } from '../../src/config/schema.ts'
 import type { ToolCall } from '../../src/tools/types.ts'
-import { ApprovalCache, evaluateCall, toolsetForModel } from '../../src/permissions/policy.ts'
+import { ApprovalCache, denyReason, evaluateCall, toolsetForModel } from '../../src/permissions/policy.ts'
 import { ToolRegistry } from '../../src/tools/registry.ts'
 import { createShellTool } from '../../src/tools/shell.ts'
 
@@ -113,5 +113,24 @@ describe('toolsetForModel', () => {
     reg.register(createShellTool({ cwd: process.cwd(), timeout: 0 }))
     expect(toolsetForModel(reg, defaultPermission, 'auto').map((t) => t.name)).toContain('run_command')
     expect(toolsetForModel(reg, defaultPermission, 'plan').map((t) => t.name)).not.toContain('run_command')
+  })
+})
+
+describe('denyReason', () => {
+  it('names the firing deny rule', () => {
+    const rules = { ...defaultPermission, shell: { allow: [], ask: [], deny: ['Bash(rm -rf *)'] } }
+    expect(denyReason(call('run_command', { command: 'rm -rf /' }), rules, 'interactive')).toBe(
+      'rule Bash(rm -rf *)',
+    )
+  })
+
+  it('names plan mode for writes', () => {
+    expect(denyReason(call('write_file', { path: 'a' }), defaultPermission, 'plan')).toBe(
+      'plan mode (read-only)',
+    )
+  })
+
+  it('returns undefined for a non-interactive ask denial', () => {
+    expect(denyReason(call('run_command', { command: 'ls' }), defaultPermission, 'interactive')).toBeUndefined()
   })
 })

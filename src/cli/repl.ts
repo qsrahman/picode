@@ -11,7 +11,7 @@ import { StreamWriter } from '../utils/stream.ts'
 import { isCommand, runCommand } from './commands.ts'
 import { messageOf } from '../errors.ts'
 import { HISTORY_SIZE, loadHistory, saveHistory } from './history.ts'
-import { ApprovalCache, evaluateCall } from '../permissions/policy.ts'
+import { ApprovalCache, denyReason, evaluateCall } from '../permissions/policy.ts'
 import { promptForDecision, summaryOf } from '../permissions/prompt.ts'
 
 export interface ReplOptions {
@@ -208,7 +208,9 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
     })
     if (decision === 'allow') return true
     if (decision === 'deny') {
-      process.stdout.write(`\n${palette.tool('✗ denied')}\n`)
+      const why = denyReason(call, config.permission, config.mode)
+      const suffix = why ? palette.promptMuted(` (${why})`) : ''
+      process.stdout.write(`\n${palette.tool('✗ denied')}${suffix}\n`)
       return false
     }
     writer.startStatus(summaryOf(call, opts.args.verbose))

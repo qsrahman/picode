@@ -11,6 +11,9 @@ import { createProvider } from './agent/provider.ts'
 import { MAX_TOOL_ROUNDS, runTurn } from './agent/agent.ts'
 import { ToolRegistry } from './tools/registry.ts'
 import { createShellTool } from './tools/shell.ts'
+import type { ToolCall } from './tools/types.ts'
+import { createFsTools } from './tools/fs.ts'
+import { createGitTools } from './tools/git.ts'
 import { ApprovalCache, toolsetForModel } from './permissions/policy.ts'
 import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
@@ -63,18 +66,32 @@ async function main(): Promise<void> {
 
   const registry = new ToolRegistry()
   registry.register(createShellTool({ cwd: config.root, timeout: config.toolTimeout }))
+  for (const tool of createFsTools({ root: config.root, additionalDirs: config.additionalDirs })) {
+    registry.register(tool)
+  }
+  for (const tool of createGitTools(config.root)) {
+    registry.register(tool)
+  }
   const tools = toolsetForModel(registry, config.permission, config.mode)
 
   if (args.prompt) {
     // One-shot is non-interactive: the engine resolves `ask` decisions to a
     // denial (no prompt), while `allow`/`deny` follow the rules and mode.
     const approvals = new ApprovalCache()
-    const authorize = createAuthorizer({
+    const base = createAuthorizer({
       rules: config.permission,
       mode: config.mode,
       approvals,
       io: { interactive: false, question: async () => 'n', print: () => {} },
     })
+    // Track denials so the process exits non-zero (2) when the policy blocks a
+    // tool call, distinguishing a blocked run from a clean one.
+    let denied = false
+    const authorize = async (call: ToolCall): Promise<boolean> => {
+      const ok = await base(call)
+      if (!ok) denied = true
+      return ok
+    }
     const result = await runTurn(provider, [], args.prompt, {
       tools,
       registry,
@@ -87,6 +104,7 @@ async function main(): Promise<void> {
     if (result.truncated) {
       process.stderr.write(`pcode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
     }
+    if (denied) process.exitCode = 2
     return
   }
 

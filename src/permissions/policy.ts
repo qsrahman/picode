@@ -3,7 +3,14 @@ import type { ToolCall, ToolDefinition } from '../tools/types.ts'
 import type { ToolRegistry } from '../tools/registry.ts'
 import { destructiveBreaker } from './breaker.ts'
 import { isReadonlyCommand } from './readonly.ts'
-import { combineDecisions, evaluatePattern, parseToolPattern, splitCommand, type Decision } from './rules.ts'
+import {
+  combineDecisions,
+  evaluatePattern,
+  matchRuleInList,
+  parseToolPattern,
+  splitCommand,
+  type Decision,
+} from './rules.ts'
 
 // Tool name → permission category + the args key holding the operand. Populated
 // as tools land: `run_command` now; fs/git tools extend it in their slice. An
@@ -123,6 +130,23 @@ export function evaluateCall(opts: EvaluateOptions): Decision {
   }
 
   return finalize(result ?? 'deny', opts.mode, opts.isInteractive, category, breakerForced, command)
+}
+
+// Short human-readable reason a call was denied, for status-line feedback: the
+// firing deny rule, or the read-only plan-mode constraint. Returns undefined
+// when the denial is just an unresolved `ask` in a non-interactive run.
+export function denyReason(call: ToolCall, rules: Permission, mode: Mode): string | undefined {
+  const classified = classifyCall(call)
+  const category = classified?.category ?? 'edit'
+  const patterns = classified?.patterns ?? []
+  for (const p of patterns) {
+    const rule = matchRuleInList(p, rules[category].deny)
+    if (rule) return `rule ${rule}`
+  }
+  if (mode === 'plan' && (category === 'shell' || category === 'edit')) {
+    return 'plan mode (read-only)'
+  }
+  return undefined
 }
 
 // Tools the policy would always deny in the current mode are hidden from the
