@@ -6,7 +6,7 @@ Usage:
 Options:
   --model <id>             model to use (overrides config)
   --mode <mode>            permission mode: interactive | auto | plan (default: interactive)
-  --yes                    alias for --mode auto
+  --auto                   alias for --mode auto
   --plan                   alias for --mode plan
   --config <path>          config file to load
   --no-stream              buffer the full response instead of streaming

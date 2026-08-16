@@ -37,8 +37,8 @@ describe('parseCli', () => {
     expect(parseCli(['--config=./picode.json']).config).toBe('./picode.json')
   })
 
-  it('resolves --mode auto from --yes', () => {
-    expect(parseCli(['--yes']).mode).toBe('auto')
+  it('resolves --mode auto from --auto', () => {
+    expect(parseCli(['--auto']).mode).toBe('auto')
   })
 
   it('resolves --mode plan from --plan', () => {
@@ -46,7 +46,7 @@ describe('parseCli', () => {
   })
 
   it('gives explicit --mode precedence over the aliases', () => {
-    expect(parseCli(['--mode', 'plan', '--yes']).mode).toBe('plan')
+    expect(parseCli(['--mode', 'plan', '--auto']).mode).toBe('plan')
     expect(parseCli(['--mode', 'auto', '--plan']).mode).toBe('auto')
   })
 

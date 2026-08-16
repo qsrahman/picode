@@ -107,7 +107,7 @@ engine:
 | --- | --- |
 | `--model <id>` | Model to use (overrides config) |
 | `--mode <mode>` | Permission mode: `interactive` \| `auto` \| `plan` (default: `interactive`) |
-| `--yes` | Alias for `--mode auto` |
+| `--auto` | Alias for `--mode auto` |
 | `--plan` | Alias for `--mode plan` |
 | `--config <path>` | Config file to load |
 | `--no-stream` | Buffer the full response instead of streaming |
@@ -201,7 +201,7 @@ resolved `deny > ask > allow`.
 ### Modes
 
 - **interactive** (default): prompts for anything not allowed by a rule
-- **auto** (`--yes`): auto-approves anything not explicitly denied
+- **auto** (`--auto`): auto-approves anything not explicitly denied
 - **plan**: read-only — file writes, shell commands, and `run_agent` are all
   denied (read-only shell, file reads, and `web_search`/`web_fetch` are
   allowed, since they're non-mutating — `run_agent` isn't, since a sub-agent

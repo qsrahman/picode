@@ -4,7 +4,7 @@ import { HELP_TEXT } from '../../src/cli/help.ts'
 const flags = [
   '--model',
   '--mode',
-  '--yes',
+  '--auto',
   '--plan',
   '--config',
   '--no-stream',

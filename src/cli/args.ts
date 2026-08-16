@@ -18,7 +18,7 @@ export interface CliOptions {
 const CLI_OPTIONS = {
   model: { type: 'string' },
   mode: { type: 'string' },
-  yes: { type: 'boolean' },
+  auto: { type: 'boolean' },
   plan: { type: 'boolean' },
   config: { type: 'string' },
   'no-stream': { type: 'boolean' },
@@ -31,7 +31,7 @@ const CLI_OPTIONS = {
 interface ParsedValues {
   model?: string
   mode?: string
-  yes?: boolean
+  auto?: boolean
   plan?: boolean
   config?: string
   'no-stream'?: boolean
@@ -62,7 +62,7 @@ export function parseCli(argv: string[]): CliOptions {
       )
     }
     mode = parsed.data
-  } else if (values.yes) {
+  } else if (values.auto) {
     mode = 'auto'
   } else if (values.plan) {
     mode = 'plan'

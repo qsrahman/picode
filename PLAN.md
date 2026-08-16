@@ -172,7 +172,7 @@ existing variables win).
 
 ```
 picode [prompt]            one-shot when a prompt is given, REPL otherwise
-  --model <id>       --mode <interactive|auto|plan>   --yes (=auto)   --plan (=plan)
+  --model <id>       --mode <interactive|auto|plan>   --auto (=auto)   --plan (=plan)
   --config <path>    --no-stream   --verbose   --no-color   --version   --help
 ```
 
@@ -222,7 +222,7 @@ conversation.
   `plan` (read-only, but `webSearch`/`webFetch` calls are non-mutating so
   they're allowed through like reads — see Phase 4; `agent` is *not*
   non-mutating, so `plan` mode denies it alongside `edit` — see Phase 5).
-  CLI: `--mode`, aliases `--yes`/`--plan`.
+  CLI: `--mode`, aliases `--auto`/`--plan`.
 - **Defaults:** read = allow, write = ask, shell = ask, webSearch = ask,
   webFetch = ask, agent = ask (no readonly-style auto-allow list — every
   `web_search`/`web_fetch`/`run_agent` call needs a config rule or a live
@@ -287,7 +287,7 @@ conversation.
   session-only until Phase 8). The prompt is an injected hook owned by the
   agent loop — never the tool — so Phase 3 swaps it for the rule engine
   without touching `shell.ts`. Non-interactive runs (one-shot, piped stdin)
-  auto-deny instead of prompting; `--yes` bypasses.
+  auto-deny instead of prompting; `--auto` bypasses.
 - Success: `✓ done (2.1s)` appended to the settled line. No output is shown by
   default — it is model-facing only; `--verbose` prints full stdout/stderr.
 - Failure: `✗ failed (exit 1, 2.1s)` in red plus a short dim stderr/stdout
