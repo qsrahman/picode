@@ -70,6 +70,50 @@ describe('evaluateCall — shell', () => {
   })
 })
 
+describe('evaluateCall — compound shell', () => {
+  it('prompts for a line whose first subcommand is read-only but a later one is not', () => {
+    expect(
+      evalCall(
+        call('run_command', { command: 'ls && rm -r /tmp/x' }),
+        defaultPermission,
+        'interactive',
+      ),
+    ).toBe('ask')
+  })
+
+  it('prompts for a destructive subcommand after a benign prefix', () => {
+    expect(
+      evalCall(call('run_command', { command: 'pwd && mv a b' }), defaultPermission, 'interactive'),
+    ).toBe('ask')
+  })
+
+  it('allows a line where every subcommand is read-only', () => {
+    expect(
+      evalCall(
+        call('run_command', { command: 'ls -F && cat a' }),
+        defaultPermission,
+        'interactive',
+      ),
+    ).toBe('allow')
+  })
+
+  it('denies a non-read-only subcommand in plan mode', () => {
+    expect(
+      evalCall(call('run_command', { command: 'ls && rm -r /tmp/x' }), defaultPermission, 'plan'),
+    ).toBe('deny')
+  })
+
+  it('allows a fully read-only line in plan mode', () => {
+    expect(
+      evalCall(
+        call('run_command', { command: 'git status && echo hi' }),
+        defaultPermission,
+        'plan',
+      ),
+    ).toBe('allow')
+  })
+})
+
 describe('evaluateCall — mode', () => {
   it('denies all writes in plan mode', () => {
     expect(evalCall(call('run_command', { command: 'ls' }), defaultPermission, 'plan')).toBe(

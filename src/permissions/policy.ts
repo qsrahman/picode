@@ -68,19 +68,17 @@ export function classifyCall(
 }
 
 // Default decision when no rule matched: reads are allowed (except `.env*`),
-// shell read-only commands are allowed, everything else is asked.
+// shell commands are allowed only when every subcommand is read-only, and
+// everything else is asked. A compound line is classified by its most
+// privileged subcommand, so a benign prefix can't launder a destructive one.
 function defaultDecision(category: 'shell' | 'edit' | 'read', patterns: string[]): Decision {
   if (category === 'read') {
-    const blocked = patterns.some((p) => {
-      const op = parseToolPattern(p)?.operand ?? ''
-      return op === '.env' || op.endsWith('.env') || op.endsWith('/.env')
-    })
+    const blocked = patterns.some((p) => (parseToolPattern(p)?.operand ?? '').endsWith('.env'))
     return blocked ? 'deny' : 'allow'
   }
   if (category === 'shell') {
-    const command =
-      typeof patterns[0] === 'string' ? (parseToolPattern(patterns[0])?.operand ?? '') : ''
-    return isReadonlyCommand(command) ? 'allow' : 'ask'
+    const allReadonly = patterns.every((p) => isReadonlyCommand(parseToolPattern(p)?.operand ?? ''))
+    return allReadonly ? 'allow' : 'ask'
   }
   return 'ask'
 }
@@ -96,7 +94,10 @@ function finalize(
   if (decision === 'deny') return 'deny'
   if (mode === 'plan') {
     if (category === 'edit') return 'deny'
-    if (category === 'shell') return isReadonlyCommand(command) ? 'allow' : 'deny'
+    if (category === 'shell') {
+      const subs = splitCommand(command)
+      return subs.length > 0 && subs.every((c) => isReadonlyCommand(c)) ? 'allow' : 'deny'
+    }
     return 'allow'
   }
   if (mode === 'auto') return breakerForced ? 'ask' : 'allow'
