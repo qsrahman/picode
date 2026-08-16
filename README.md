@@ -7,7 +7,7 @@ permission system.
 
 > **Status:** Phases 0–4 are done. Today `pcode` holds one-shot and REPL
 > conversations, streams output, and runs a full local tool suite — file
-> read/write/list/stat, a `run_command` shell, read-only git, and web
+> read/write/edit/list/stat, a `run_command` shell, read-only git, and web
 > search/fetch — behind a declarative `allow`/`ask`/`deny` permission engine
 > with interactive prompts and `interactive` / `auto` / `plan` modes. MCP
 > integration lands in Phase 5.
@@ -46,6 +46,10 @@ plus `config.additionalDirs`); path traversal outside is blocked.
   timeout reports `exit 124`.
 - `read_file` / `write_file` / `list_dir` / `stat` — file operations.
   `write_file` creates parent directories and overwrites existing files.
+- `edit_file` — surgical patch: replaces `old_string` with `new_string`
+  inside a file without rewriting the rest of it. `old_string` must match
+  exactly once (whitespace/indentation included) unless `replace_all` is
+  set; an ambiguous or missing match reports back instead of guessing.
 - `git_status` / `git_diff` / `git_log` / `git_show` — read-only git, run in
   the workspace root.
 - `web_search` — searches the web via the [Brave Search API](https://brave.com/search/api/)

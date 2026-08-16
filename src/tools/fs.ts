@@ -26,6 +26,27 @@ function infoOf(st: Stats): string {
   })
 }
 
+// Non-overlapping occurrence count, used to require old_string to be
+// unambiguous before editing (same contract as Claude Code's Edit tool).
+function countOccurrences(haystack: string, needle: string): number {
+  let count = 0
+  let from = 0
+  for (;;) {
+    const at = haystack.indexOf(needle, from)
+    if (at === -1) return count
+    count++
+    from = at + needle.length
+  }
+}
+
+// Replaces the first occurrence only. Deliberately not String.prototype.replace:
+// its replacement-string argument treats `$&`/`$1`/`$$` specially even for a
+// literal search string, which would corrupt a `new_string` containing `$`.
+function replaceOnce(content: string, oldString: string, newString: string): string {
+  const at = content.indexOf(oldString)
+  return content.slice(0, at) + newString + content.slice(at + oldString.length)
+}
+
 export function createFsTools(ctx: FsToolContext): Tool[] {
   const locate = (p: string) => confine(ctx.root, ctx.additionalDirs, p)
 
@@ -51,6 +72,47 @@ export function createFsTools(ctx: FsToolContext): Tool[] {
         await mkdir(abs.slice(0, abs.lastIndexOf('/')), { recursive: true })
         await writeFile(abs, content, 'utf8')
         return `wrote ${path} (${content.length} bytes)`
+      },
+    },
+    {
+      name: 'edit_file',
+      description:
+        'Replace an exact substring in a file inside the workspace, without ' +
+        'rewriting the rest of it. old_string must match exactly once ' +
+        '(including whitespace/indentation) unless replace_all is set. Use ' +
+        'for targeted edits; use write_file to create a file or replace it ' +
+        'wholesale.',
+      input: z.object({
+        path: z.string().min(1),
+        old_string: z.string().min(1),
+        new_string: z.string(),
+        replace_all: z.boolean().optional(),
+      }),
+      execute: async (args) => {
+        const { path, old_string, new_string, replace_all } = args as {
+          path: string
+          old_string: string
+          new_string: string
+          replace_all?: boolean
+        }
+        const abs = locate(path)
+        const content = await readFile(abs, 'utf8')
+        const count = countOccurrences(content, old_string)
+        if (count === 0) {
+          return `old_string not found in ${path}`
+        }
+        if (count > 1 && !replace_all) {
+          return (
+            `old_string matches ${count} times in ${path}; add more context to ` +
+            `old_string to make it unique, or pass replace_all: true`
+          )
+        }
+        const updated = replace_all
+          ? content.split(old_string).join(new_string)
+          : replaceOnce(content, old_string, new_string)
+        await writeFile(abs, updated, 'utf8')
+        const replaced = replace_all ? count : 1
+        return `edited ${path} (${replaced} replacement${replaced === 1 ? '' : 's'})`
       },
     },
     {

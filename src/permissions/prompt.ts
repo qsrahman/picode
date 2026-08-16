@@ -19,6 +19,9 @@ export function summaryOf(call: ToolCall, verbose: boolean): string {
   if (call.name === 'web_fetch' && typeof call.args.url === 'string') {
     return `web_fetch: ${call.args.url}`
   }
+  if (call.name === 'edit_file' && typeof call.args.path === 'string') {
+    return `edit_file: ${call.args.path}`
+  }
   return `${call.name}(${JSON.stringify(call.args)})`
 }
 

@@ -22,6 +22,7 @@ const TOOL_META: Record<string, { category: Category; key: string }> = {
   // fs/git tools (slice H) register here so policy has a stable contract to
   // classify against; their implementations must use these exact names/keys.
   write_file: { category: 'edit', key: 'path' },
+  edit_file: { category: 'edit', key: 'path' },
   read_file: { category: 'read', key: 'path' },
   list_dir: { category: 'read', key: 'path' },
   stat: { category: 'read', key: 'path' },

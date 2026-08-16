@@ -80,7 +80,7 @@ src/
     types.ts            Tool interface
     schema.ts           minimal zod → strict JSON-Schema converter
     registry.ts         name → Tool lookup; execution
-    fs.ts               read_file / write_file / list_dir / stat
+    fs.ts               read_file / write_file / edit_file / list_dir / stat
     shell.ts            run_command (timeout, cwd, capped output)
     git.ts              status / diff / log / show (read-only)
     web.ts              web_search (Brave Search) / web_fetch (HTML→text)
@@ -405,7 +405,10 @@ one-shot and interactive REPL.
 #### Core features
 
 - [x] `tools/fs.ts`: `read_file` / `write_file` / `list_dir` / `stat`;
-       workspace-root confined with traversal guard
+       workspace-root confined with traversal guard (`edit_file` — exact
+       `old_string`→`new_string` surgical patch, ambiguous/missing match
+       reported rather than guessed — added post-Phase-4, same category/key
+       as `write_file` so no permission-engine change was needed)
 - [x] `tools/git.ts`: `status` / `diff` / `log` / `show` (read-only)
 - [x] `permissions/rules.ts`: `Tool(pattern)` engine — `deny > ask > allow`,
        wildcards, path globs, command prefixes, compound split + wrapper strip
