@@ -75,8 +75,9 @@ tests/              mirrors src/ 1:1
 > `prompt.ts`) are implemented and wired into the loop via `authorize()`.
 
 > Phase 4 is done: `tools/web.ts` (`web_search`, `web_fetch`) +
-> `tools/netGuard.ts` (SSRF guard), and the permission engine's `web` category
-> (`Web(pattern)`, default `ask`) are implemented.
+> `tools/netGuard.ts` (SSRF guard), and the permission engine's separate
+> `webSearch`/`webFetch` categories (`WebSearch(pattern)`/`WebFetch(pattern)`,
+> default `ask`) are implemented.
 
 ## Testing
 

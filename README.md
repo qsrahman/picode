@@ -130,10 +130,11 @@ Config is merged in this order (later wins):
   "maxRetries": 3,                     // OpenAI SDK request retries
   "toolTimeout": 30000,                // default shell tool timeout (ms)
   "permission": {
-    "shell": { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
-    "edit":  { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
-    "read":  { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
-    "web":   { "allow": [],                "ask": [], "deny": ["Web(https://internal.corp/**)"] }
+    "shell":      { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
+    "edit":       { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
+    "read":       { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
+    "webSearch":  { "allow": ["WebSearch(*)"],  "ask": [], "deny": [] },
+    "webFetch":   { "allow": [],                "ask": [], "deny": ["WebFetch(https://internal.corp/**)"] }
   }
 }
 
@@ -159,7 +160,10 @@ explicit `--model` flag beats `OPENAI_DEFAULT_MODEL`.
 
 `pcode` gates every tool call through a rule engine with `allow` / `ask` /
 `deny` buckets, evaluated **deny > ask > allow**. Rules use `Tool(pattern)`
-syntax (`Bash(pnpm test *)`, `Edit(src/**)`, `Read(.env)`, `Web(https://internal.corp/**)`).
+syntax (`Bash(pnpm test *)`, `Edit(src/**)`, `Read(.env)`,
+`WebSearch(*)`, `WebFetch(https://internal.corp/**)`) — `web_search` and
+`web_fetch` are separate `webSearch`/`webFetch` categories, not one shared
+`web` bucket, so a rule can target one without also matching the other.
 When a call needs approval you answer:
 
 - `y` — allow once

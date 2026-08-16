@@ -19,7 +19,11 @@ export const permissionSchema = z.object({
   shell: toolRulesSchema,
   edit: toolRulesSchema,
   read: toolRulesSchema,
-  web: toolRulesSchema,
+  // webSearch/webFetch are separate categories (not one shared `web`) so a
+  // rule can target one without also matching the other — they're different
+  // tools with different risk profiles (a query string vs. an arbitrary URL).
+  webSearch: toolRulesSchema,
+  webFetch: toolRulesSchema,
 })
 export type Permission = z.infer<typeof permissionSchema>
 
@@ -30,7 +34,8 @@ export const filePermissionSchema = z
     shell: toolRulesSchema.partial().optional(),
     edit: toolRulesSchema.partial().optional(),
     read: toolRulesSchema.partial().optional(),
-    web: toolRulesSchema.partial().optional(),
+    webSearch: toolRulesSchema.partial().optional(),
+    webFetch: toolRulesSchema.partial().optional(),
   })
   .partial()
   .optional()
@@ -39,7 +44,8 @@ export const defaultPermission: Permission = {
   shell: emptyToolRules,
   edit: emptyToolRules,
   read: emptyToolRules,
-  web: emptyToolRules,
+  webSearch: emptyToolRules,
+  webFetch: emptyToolRules,
 }
 
 // All fields are required: defaults are merged in config.ts before parsing, so

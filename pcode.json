@@ -11,6 +11,9 @@
     },
     "read": {
       "deny": ["Read(.env)"]
+    },
+    "webSearch": {
+      "allow": ["WebSearch(*)"]
     }
   }
 }

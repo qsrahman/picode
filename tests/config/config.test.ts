@@ -188,7 +188,8 @@ describe('resolveConfig', () => {
       shell: { allow: [], ask: [], deny: [] },
       edit: { allow: [], ask: [], deny: [] },
       read: { allow: [], ask: [], deny: [] },
-      web: { allow: [], ask: [], deny: [] },
+      webSearch: { allow: [], ask: [], deny: [] },
+      webFetch: { allow: [], ask: [], deny: [] },
     })
   })
 
@@ -221,17 +222,20 @@ describe('resolveConfig', () => {
     expect(config.permission.shell.deny).toEqual([])
   })
 
-  it('merges a partial web rule list without wiping the others', () => {
+  it('merges a partial webFetch rule list without wiping the others', () => {
     writeFileSync(
       projectPath,
-      JSON.stringify({ permission: { web: { deny: ['Web(https://internal.corp/**)'] } } }),
+      JSON.stringify({
+        permission: { webFetch: { deny: ['WebFetch(https://internal.corp/**)'] } },
+      }),
     )
     const config = resolveConfig(
       {},
       { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
     )
-    expect(config.permission.web.deny).toEqual(['Web(https://internal.corp/**)'])
-    expect(config.permission.web.allow).toEqual([])
+    expect(config.permission.webFetch.deny).toEqual(['WebFetch(https://internal.corp/**)'])
+    expect(config.permission.webFetch.allow).toEqual([])
+    expect(config.permission.webSearch).toEqual({ allow: [], ask: [], deny: [] })
     expect(config.permission.shell).toEqual({ allow: [], ask: [], deny: [] })
   })
 

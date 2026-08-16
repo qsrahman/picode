@@ -114,7 +114,8 @@ export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions 
         shell: mergeToolRules(prevPermission.shell, filePerm.shell),
         edit: mergeToolRules(prevPermission.edit, filePerm.edit),
         read: mergeToolRules(prevPermission.read, filePerm.read),
-        web: mergeToolRules(prevPermission.web, filePerm.web),
+        webSearch: mergeToolRules(prevPermission.webSearch, filePerm.webSearch),
+        webFetch: mergeToolRules(prevPermission.webFetch, filePerm.webFetch),
       }
     }
   }

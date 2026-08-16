@@ -142,10 +142,11 @@ runTurn (Phase 2+, streaming):
   "maxRetries": 3,                        // OpenAI SDK request retries
   "toolTimeout": 30000,                   // default shell tool timeout (ms)
   "permission": {
-    "shell": { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
-    "edit":  { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
-    "read":  { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
-    "web":   { "allow": [],                "ask": [], "deny": [] }
+    "shell":      { "allow": ["Bash(pnpm test *)"], "ask": [], "deny": ["Bash(rm -rf *)"] },
+    "edit":       { "allow": ["Edit(src/**)"],  "ask": [], "deny": [] },
+    "read":       { "allow": [],                "ask": [], "deny": ["Read(.env)"] },
+    "webSearch":  { "allow": [],                "ask": [], "deny": [] },
+    "webFetch":   { "allow": [],                "ask": [], "deny": [] }
     // mcp.<server>.<tool> rules arrive with Phase 5
   },
   "mcp": { "servers": [] }                // Phase 5
@@ -201,16 +202,22 @@ conversation.
   fallback for `ask`.
 - **Precedence:** `deny > ask > allow`, independent of rule specificity.
 - **Patterns:** Claude-Code-style `Tool(pattern)` — `Bash(pnpm test *)`,
-  `Edit(src/**)`, `Read(./.env)`, `Web(https://internal.corp/**)`,
-  `mcp.<server>.<tool>`; `*`/`?` wildcards, `**` for paths (`Bash`/`Web`
-  operands use crossSlash glob matching instead, since they aren't nested
-  paths — a bare `*` already spans `/`).
+  `Edit(src/**)`, `Read(./.env)`, `WebSearch(*)`,
+  `WebFetch(https://internal.corp/**)`, `mcp.<server>.<tool>`; `*`/`?`
+  wildcards, `**` for paths (`Bash`/`WebSearch`/`WebFetch` operands use
+  crossSlash glob matching instead, since they aren't nested paths — a bare
+  `*` already spans `/`). `web_search` and `web_fetch` are deliberately
+  separate categories rather than one shared `web` bucket, so a rule can
+  target one without also matching the other (a query string and a URL have
+  different risk profiles).
 - **Modes:** `interactive` (default) · `auto` (auto-approve non-denied) ·
-  `plan` (read-only, but `web` calls are non-mutating so they're allowed
-  through like reads — see Phase 4). CLI: `--mode`, aliases `--yes`/`--plan`.
-- **Defaults:** read = allow, write = ask, shell = ask, web = ask (no
-  readonly-style auto-allow list — every `web_search`/`web_fetch` call needs
-  a config rule or a live approval); `.env*` reads blocked.
+  `plan` (read-only, but `webSearch`/`webFetch` calls are non-mutating so
+  they're allowed through like reads — see Phase 4). CLI: `--mode`, aliases
+  `--yes`/`--plan`.
+- **Defaults:** read = allow, write = ask, shell = ask, webSearch = ask,
+  webFetch = ask (no readonly-style auto-allow list — every `web_search`/
+  `web_fetch` call needs a config rule or a live approval); `.env*` reads
+  blocked.
 - **Read-only bash set:** built-in, non-configurable (`ls`, `cat`, `grep`,
   `git status`, …) runs unprompted.
 - **Compound commands:** split on `&&`/`||`/`;`/`|` and match each subcommand;
@@ -222,11 +229,14 @@ conversation.
 - **Prompt UX:** `y` / `n` / `a`; `a` previews the exact pattern recorded
   (e.g. `Bash(pnpm test *)`); approvals session-only until Phase 7.
 - **MCP tools:** same engine, namespaced rules, default `ask`.
-- **Network tools (Phase 4):** `web_search`/`web_fetch` get their own `web`
-  category rather than folding into `read` — network egress to an arbitrary
-  host has a different risk profile than a workspace-confined file read (SSRF,
-  context exfiltration), so it defaults to `ask` with no auto-allow list. A
-  hard, unconditional guard (D10) sits beneath the configurable policy.
+- **Network tools (Phase 4):** `web_search`/`web_fetch` get their own
+  `webSearch`/`webFetch` categories rather than folding into `read` (or into
+  one shared `web` bucket) — network egress to an arbitrary host has a
+  different risk profile than a workspace-confined file read (SSRF, context
+  exfiltration), and a query string and a URL are different enough operands
+  that a rule allowing one shouldn't silently allow the other. Both default to
+  `ask` with no auto-allow list. A hard, unconditional guard (D10) sits
+  beneath the configurable policy.
 
 ### CLI UI/UX
 
@@ -454,12 +464,14 @@ dependencies.
       `BRAVE_SEARCH_API_KEY`) — env var *name*, same pattern as `apiKeyEnv`;
       missing key degrades `web_search` to a clear in-band message rather than
       failing startup or hiding the tool
-- [x] `permissions/rules.ts` + `policy.ts`: new `web` category — `Web(pattern)`
-      syntax, crossSlash glob matching (like `Bash`, not path-glob like
+- [x] `permissions/rules.ts` + `policy.ts`: separate `webSearch`/`webFetch`
+      categories — `WebSearch(pattern)`/`WebFetch(pattern)` syntax (not one
+      shared `web` bucket, so a rule can target one without also matching the
+      other), crossSlash glob matching (like `Bash`, not path-glob like
       `Edit`/`Read`), `TOOL_META` entries for `web_search`/`web_fetch`,
-      default decision `ask` (no readonly-style auto-allow list); plan mode
-      allows `web` through like `read` (both non-mutating); `auto` mode
-      auto-approves it like every other non-breaker category
+      default decision `ask` for both (no readonly-style auto-allow list);
+      plan mode allows them through like `read` (all non-mutating); `auto`
+      mode auto-approves them like every other non-breaker category
 - [x] `permissions/prompt.ts`: `summaryOf` shows `web_search: <query>` /
       `web_fetch: <url>` instead of the generic fallback
 - [x] `index.ts`: tools registered unconditionally alongside shell/fs/git
@@ -468,9 +480,10 @@ dependencies.
    mocked `node:dns/promises`); `tools/web.test.ts` (mocked global `fetch` —
    missing-key message, result formatting, non-2xx, HTML stripping, non-HTML
    passthrough, output capping, SSRF short-circuit before `fetch` runs);
-   `permissions/rules.test.ts` + `policy.test.ts` (`Web(...)` pattern parsing
-   and matching, `web` category defaults and mode behavior);
-   `config/config.test.ts` (`permission.web` merge, `braveSearchApiKeyEnv`)
+   `permissions/rules.test.ts` + `policy.test.ts` (`WebSearch(...)`/
+   `WebFetch(...)` pattern parsing and matching, category independence,
+   defaults and mode behavior); `config/config.test.ts` (`permission.webSearch`/
+   `permission.webFetch` merge, `braveSearchApiKeyEnv`)
 - **Docs:** updated this file + `README.md` (tools, config example, `.env`,
    permission model, roadmap) + `AGENTS.md` (module map)
 - **Acceptance:** `web_search`/`web_fetch` show up in `/tools`; both default

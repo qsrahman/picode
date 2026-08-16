@@ -12,7 +12,7 @@ import {
   type Decision,
 } from './rules.ts'
 
-type Category = 'shell' | 'edit' | 'read' | 'web'
+type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch'
 
 // Tool name → permission category + the args key holding the operand. Populated
 // as tools land: `run_command` now; fs/git tools extend it in their slice. An
@@ -33,8 +33,8 @@ const TOOL_META: Record<string, { category: Category; key: string }> = {
   git_diff: { category: 'read', key: '' },
   git_log: { category: 'read', key: '' },
   git_show: { category: 'read', key: '' },
-  web_search: { category: 'web', key: 'query' },
-  web_fetch: { category: 'web', key: 'url' },
+  web_search: { category: 'webSearch', key: 'query' },
+  web_fetch: { category: 'webFetch', key: 'url' },
 }
 
 // Session-only approvals recorded by the prompt ('a' answer). A pattern added
@@ -64,7 +64,8 @@ const PATTERN_PREFIX: Record<Category, string> = {
   shell: 'Bash',
   edit: 'Edit',
   read: 'Read',
-  web: 'Web',
+  webSearch: 'WebSearch',
+  webFetch: 'WebFetch',
 }
 
 export function classifyCall(call: ToolCall): { category: Category; patterns: string[] } | null {
@@ -78,11 +79,11 @@ export function classifyCall(call: ToolCall): { category: Category; patterns: st
 }
 
 // Default decision when no rule matched: reads are allowed (except `.env*`),
-// shell commands are allowed only when every subcommand is read-only, web
-// calls always ask (no readonly-style allowlist for arbitrary network
-// egress), and everything else is asked. A compound shell line is classified
-// by its most privileged subcommand, so a benign prefix can't launder a
-// destructive one.
+// shell commands are allowed only when every subcommand is read-only,
+// webSearch/webFetch always ask (no readonly-style allowlist for arbitrary
+// network egress), and everything else is asked. A compound shell line is
+// classified by its most privileged subcommand, so a benign prefix can't
+// launder a destructive one.
 function defaultDecision(category: Category, patterns: string[]): Decision {
   if (category === 'read') {
     const blocked = patterns.some((p) => (parseToolPattern(p)?.operand ?? '').endsWith('.env'))
@@ -110,8 +111,9 @@ function finalize(
       const subs = splitCommand(command)
       return subs.length > 0 && subs.every((c) => isReadonlyCommand(c)) ? 'allow' : 'deny'
     }
-    // read and web are both non-mutating, so plan mode allows them through
-    // like any other read (subject to an explicit deny rule, handled above).
+    // read, webSearch, and webFetch are all non-mutating, so plan mode allows
+    // them through like any other read (subject to an explicit deny rule,
+    // handled above).
     return 'allow'
   }
   if (mode === 'auto') return breakerForced ? 'ask' : 'allow'

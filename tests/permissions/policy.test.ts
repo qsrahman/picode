@@ -161,8 +161,18 @@ describe('evaluateCall — web', () => {
     ).toBe('ask')
   })
 
-  it('honors an explicit allow rule', () => {
-    const rules = withRules({ web: { allow: ['Web(https://example.com/**)'], ask: [], deny: [] } })
+  it('webSearch and webFetch are separate categories: a rule on one does not affect the other', () => {
+    const rules = withRules({ webSearch: { allow: ['WebSearch(*)'], ask: [], deny: [] } })
+    expect(evalCall(call('web_search', { query: 'anything' }), rules, 'interactive')).toBe('allow')
+    expect(evalCall(call('web_fetch', { url: 'https://example.com' }), rules, 'interactive')).toBe(
+      'ask',
+    )
+  })
+
+  it('honors an explicit allow rule on webFetch', () => {
+    const rules = withRules({
+      webFetch: { allow: ['WebFetch(https://example.com/**)'], ask: [], deny: [] },
+    })
     expect(
       evalCall(call('web_fetch', { url: 'https://example.com/docs' }), rules, 'interactive'),
     ).toBe('allow')
@@ -170,7 +180,7 @@ describe('evaluateCall — web', () => {
 
   it('honors an explicit deny rule even in auto mode', () => {
     const rules = withRules({
-      web: { allow: [], ask: [], deny: ['Web(https://internal.corp/**)'] },
+      webFetch: { allow: [], ask: [], deny: ['WebFetch(https://internal.corp/**)'] },
     })
     expect(evalCall(call('web_fetch', { url: 'https://internal.corp/x' }), rules, 'auto')).toBe(
       'deny',

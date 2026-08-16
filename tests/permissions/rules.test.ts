@@ -15,12 +15,16 @@ function withRules(rules: Partial<Permission>): Permission {
 }
 
 describe('parseToolPattern', () => {
-  it('parses the four configured categories', () => {
+  it('parses the five configured categories', () => {
     expect(parseToolPattern('Bash(pnpm test)')).toEqual({ kind: 'shell', operand: 'pnpm test' })
     expect(parseToolPattern('Edit(src/a.ts)')).toEqual({ kind: 'edit', operand: 'src/a.ts' })
     expect(parseToolPattern('Read(.env)')).toEqual({ kind: 'read', operand: '.env' })
-    expect(parseToolPattern('Web(https://example.com)')).toEqual({
-      kind: 'web',
+    expect(parseToolPattern('WebSearch(pcode agent)')).toEqual({
+      kind: 'webSearch',
+      operand: 'pcode agent',
+    })
+    expect(parseToolPattern('WebFetch(https://example.com)')).toEqual({
+      kind: 'webFetch',
       operand: 'https://example.com',
     })
   })
@@ -46,7 +50,7 @@ describe('glob matching', () => {
     expect(matchPathGlob('*.env', 'config/.env')).toBe(false)
   })
 
-  it('crosses slashes for a bare * on Web patterns, like Bash', () => {
+  it('crosses slashes for a bare * on WebFetch patterns, like Bash', () => {
     expect(matchGlob('https://docs.example.com/*', 'https://docs.example.com/a/b')).toBe(true)
   })
 })
@@ -87,12 +91,18 @@ describe('evaluatePattern precedence', () => {
     expect(evaluatePattern('Edit(src/x)', rules)).toBeNull()
   })
 
-  it('matches Web patterns using crossSlash globs', () => {
+  it('matches WebFetch patterns using crossSlash globs', () => {
     const rules = withRules({
-      web: { allow: [], ask: [], deny: ['Web(https://internal.corp/**)'] },
+      webFetch: { allow: [], ask: [], deny: ['WebFetch(https://internal.corp/**)'] },
     })
-    expect(evaluatePattern('Web(https://internal.corp/secrets)', rules)).toBe('deny')
-    expect(evaluatePattern('Web(https://example.com)', rules)).toBeNull()
+    expect(evaluatePattern('WebFetch(https://internal.corp/secrets)', rules)).toBe('deny')
+    expect(evaluatePattern('WebFetch(https://example.com)', rules)).toBeNull()
+  })
+
+  it('keeps webSearch and webFetch as distinct categories', () => {
+    const rules = withRules({ webSearch: { allow: ['WebSearch(*)'], ask: [], deny: [] } })
+    expect(evaluatePattern('WebSearch(anything)', rules)).toBe('allow')
+    expect(evaluatePattern('WebFetch(https://example.com)', rules)).toBeNull()
   })
 })
 

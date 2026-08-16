@@ -6,12 +6,12 @@ import { type Permission, type ToolRules } from '../config/schema.ts'
 // and is unit-testable in isolation.
 export type Decision = 'allow' | 'ask' | 'deny'
 
-type Category = 'shell' | 'edit' | 'read' | 'web'
+type Category = 'shell' | 'edit' | 'read' | 'webSearch' | 'webFetch'
 
-// Parse `Bash(cmd)` / `Edit(path)` / `Read(path)` / `Web(url)` into a category
-// + operand. Anything the permission config can't express yet (e.g. `mcp.*`)
-// returns null so the caller falls back to its default, rather than silently
-// matching.
+// Parse `Bash(cmd)` / `Edit(path)` / `Read(path)` / `WebSearch(query)` /
+// `WebFetch(url)` into a category + operand. Anything the permission config
+// can't express yet (e.g. `mcp.*`) returns null so the caller falls back to
+// its default, rather than silently matching.
 export function parseToolPattern(input: string): { kind: Category; operand: string } | null {
   const m = /^([A-Za-z][\w.]*)\((.*)\)$/.exec(input.trim())
   if (!m) return null
@@ -20,7 +20,8 @@ export function parseToolPattern(input: string): { kind: Category; operand: stri
   if (name === 'Bash' || name === 'Shell') return { kind: 'shell', operand }
   if (name === 'Edit') return { kind: 'edit', operand }
   if (name === 'Read') return { kind: 'read', operand }
-  if (name === 'Web') return { kind: 'web', operand }
+  if (name === 'WebSearch') return { kind: 'webSearch', operand }
+  if (name === 'WebFetch') return { kind: 'webFetch', operand }
   return null
 }
 
