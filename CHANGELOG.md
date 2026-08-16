@@ -8,6 +8,29 @@ phase).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-16
+
+### Added
+
+- `run_agent` tool: delegates a well-scoped, self-contained subtask
+  (`{ description, prompt }`) to a fresh, isolated instance of the same
+  `runTurn` loop, reusing the parent's provider and tool registry. Runs
+  headless — an unresolved `ask` for its own inner tool calls auto-denies
+  instead of popping a nested approval prompt — and is capped at one level
+  of nesting (it can't call itself).
+- `agent` permission category (`Agent(description)` pattern), default `ask`,
+  denied outright in `plan` mode alongside `edit` (unlike `read`/
+  `webSearch`/`webFetch`, a sub-agent isn't non-mutating).
+
+### Changed
+
+- Project renamed from `pcode` to `picode`: package/bin name, user config
+  dir (`~/.config/picode/`), project config file (`picode.json`), and
+  history dir (`.picode/`).
+- `ApprovalCache` construction hoisted to `index.ts`'s `main()` (was built
+  separately per entry point) so `run_agent` shares the same session
+  "always allow" cache as the interactive authorizer.
+
 ## [0.4.0] - 2026-08-16
 
 ### Added
