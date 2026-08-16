@@ -71,10 +71,18 @@ export function createProvider(config: Config, apiKey: string): Provider {
       return {
         [Symbol.asyncIterator]: () => streamEvents(stream)[Symbol.asyncIterator](),
         finalOutput: async () => {
-          const response = await stream.finalResponse()
+          let response: Awaited<ReturnType<typeof stream.finalResponse>> | undefined
+          try {
+            response = await stream.finalResponse()
+          } catch {
+            // Some endpoints (e.g. Ollama) emit a final response with no
+            // `output` field, which the SDK throws on. Degrade to an empty
+            // turn rather than crashing the whole run.
+            return { items: [], text: '' }
+          }
           return {
-            items: response.output as unknown as ProviderItem[],
-            text: response.output_text,
+            items: (response.output ?? []) as unknown as ProviderItem[],
+            text: response.output_text ?? '',
           }
         },
       }
@@ -83,9 +91,15 @@ export function createProvider(config: Config, apiKey: string): Provider {
 }
 
 async function* streamEvents(stream: ResponseStream): AsyncGenerator<ProviderEvent> {
-  for await (const event of stream) {
-    if (event.type === 'response.output_text.delta') {
-      yield { type: 'text_delta', delta: event.delta }
+  try {
+    for await (const event of stream) {
+      if (event.type === 'response.output_text.delta') {
+        yield { type: 'text_delta', delta: event.delta }
+      }
     }
+  } catch {
+    // Some endpoints (e.g. Ollama) finalize a response with no `output`
+    // field, throwing inside the SDK as it drains the stream. Drop the
+    // remaining events; finalOutput() degrades the turn to empty.
   }
 }
