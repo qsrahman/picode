@@ -134,7 +134,7 @@ runTurn (Phase 2+, streaming):
   "baseURL": "https://api.openai.com/v1",  // OPENAI_BASE_URL env overrides
   "apiKeyEnv": "OPENAI_API_KEY",          // key read from this env var
   "braveSearchApiKeyEnv": "BRAVE_SEARCH_API_KEY", // web_search key env var
-  "instructions": "…coding agent system prompt…",
+  "instructions": "…coding agent system prompt…", // default: agent/systemPrompt.ts's tool-usage guidance
   "root": "/path/to/workspace",          // default: process.cwd()
   "additionalDirs": ["../sibling"],
   "mode": "interactive",                  // interactive | auto | plan

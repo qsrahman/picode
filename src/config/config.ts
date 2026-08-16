@@ -5,13 +5,14 @@ import { join, resolve } from 'node:path'
 import type { Mode } from './schema.ts'
 import { configSchema, defaultPermission, fileConfigSchema, type Config } from './schema.ts'
 import { ConfigError, messageOf } from '../errors.ts'
+import { DEFAULT_INSTRUCTIONS } from '../agent/systemPrompt.ts'
 
 export const DEFAULT_CONFIG: Omit<Config, 'root'> = {
   model: 'gpt-5.6',
   baseURL: 'https://api.openai.com/v1',
   apiKeyEnv: 'OPENAI_API_KEY',
   braveSearchApiKeyEnv: 'BRAVE_SEARCH_API_KEY',
-  instructions: '',
+  instructions: DEFAULT_INSTRUCTIONS,
   additionalDirs: [],
   mode: 'interactive',
   permission: defaultPermission,

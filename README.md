@@ -69,6 +69,12 @@ tools are hidden from the model's toolset; calls that are denied only for
 specific arguments are hard-blocked at run time (the denial status line names
 the blocking rule or `plan mode`).
 
+The default `instructions` (`src/agent/systemPrompt.ts`) tells the model how
+to use this toolset correctly — notably to prefer `edit_file` over
+`write_file` for changes to an existing file, since a full rewrite discards
+anything the edit didn't intend to touch. Setting `instructions` in a config
+file replaces this default wholesale rather than appending to it.
+
 Planned (Phase 6): a `todo` tool that lets the agent break a complex task into
 tracked subtasks (`pending` / `in_progress` / `done`) and keep them in sync
 across tool rounds.
@@ -126,7 +132,7 @@ Config is merged in this order (later wins):
   "baseURL": "https://api.openai.com/v1",
   "apiKeyEnv": "OPENAI_API_KEY",
   "braveSearchApiKeyEnv": "BRAVE_SEARCH_API_KEY",
-  "instructions": "You are pcode, a coding agent.",
+  "instructions": "You are pcode, a coding agent.", // overrides the built-in default wholesale
   "root": "/path/to/workspace",        // default: current directory
   "additionalDirs": ["../sibling"],
   "mode": "interactive",               // interactive | auto | plan

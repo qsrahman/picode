@@ -61,7 +61,7 @@ src/
   errors.ts         shared error classes + messageOf helper
   cli/              args, commands (slash), repl, history, approval
   config/           zod schema + load/merge/validate
-  agent/            provider (OpenAI impl) + agent loop
+  agent/            provider (OpenAI impl) + agent loop + default system prompt
   tools/            Tool interface, zod→JSON schema, registry, shell, fs, git,
                     web (search/fetch) + netGuard (SSRF guard)
   utils/            palette + streaming/status writer
