@@ -1,6 +1,6 @@
 # AGENTS.md — Developer Guide
 
-Guidance for working on `pcode`, a model-agnostic CLI AI coding agent built on
+Guidance for working on `picode`, a model-agnostic CLI AI coding agent built on
 the OpenAI Responses API. Planning and requirements live in
 [`PLAN.md`](./PLAN.md); usage docs in [`README.md`](./README.md). These three
 files must stay in sync with the code.

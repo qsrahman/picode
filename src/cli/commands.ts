@@ -32,14 +32,14 @@ export function isCommand(input: string): boolean {
 // Sorted alphabetically so /help output is predictable at a glance.
 const COMMAND_HELP = `Commands:
   /clear   clear the terminal
-  /exit    quit pcode
+  /exit    quit picode
   /help    show this help
   /mode    show the current permission mode (or switch: /mode auto|plan)
   /model   show the active model
   /reset   reset the conversation
   /tools   list tools and their effective permission in the current mode
 
-Run pcode --help for CLI flags and options.`
+Run picode --help for CLI flags and options.`
 
 // Handles every line that looks like a slash command. Returns true when the
 // line was consumed as a command (known or unknown), false for prose.

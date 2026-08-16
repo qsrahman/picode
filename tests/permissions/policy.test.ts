@@ -154,7 +154,7 @@ describe('evaluateCall — read defaults', () => {
 describe('evaluateCall — web', () => {
   it('asks by default, with no readonly-style auto-allow', () => {
     expect(
-      evalCall(call('web_search', { query: 'pcode agent' }), defaultPermission, 'interactive'),
+      evalCall(call('web_search', { query: 'picode agent' }), defaultPermission, 'interactive'),
     ).toBe('ask')
     expect(
       evalCall(call('web_fetch', { url: 'https://example.com' }), defaultPermission, 'interactive'),
@@ -188,7 +188,7 @@ describe('evaluateCall — web', () => {
   })
 
   it('is auto-approved in auto mode like other non-breaker categories', () => {
-    expect(evalCall(call('web_search', { query: 'pcode agent' }), defaultPermission, 'auto')).toBe(
+    expect(evalCall(call('web_search', { query: 'picode agent' }), defaultPermission, 'auto')).toBe(
       'allow',
     )
   })

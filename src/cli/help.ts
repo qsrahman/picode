@@ -1,7 +1,7 @@
-export const HELP_TEXT = `pcode — model-agnostic AI coding agent
+export const HELP_TEXT = `picode — model-agnostic AI coding agent
 
 Usage:
-  pcode [prompt]           one-shot when a prompt is given, interactive REPL otherwise
+  picode [prompt]           one-shot when a prompt is given, interactive REPL otherwise
 
 Options:
   --model <id>             model to use (overrides config)

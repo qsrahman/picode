@@ -83,8 +83,8 @@ function readConfigFile(path: string, required: boolean): ConfigFile | null {
 export function resolveConfig(args: ConfigOverrides, opts: ResolveConfigOptions = {}): Config {
   const cwd = opts.cwd ?? process.cwd()
   const env = opts.env ?? process.env
-  const userPath = opts.userConfigPath ?? join(homedir(), '.config', 'pcode', 'config.json')
-  const projectPath = opts.projectConfigPath ?? join(cwd, 'pcode.json')
+  const userPath = opts.userConfigPath ?? join(homedir(), '.config', 'picode', 'config.json')
+  const projectPath = opts.projectConfigPath ?? join(cwd, 'picode.json')
 
   const sources = [
     readConfigFile(userPath, false),

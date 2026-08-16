@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { createGitTools } from '../../src/tools/git.ts'
 
 async function repo(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'pcode-git-'))
+  const dir = await mkdtemp(join(tmpdir(), 'picode-git-'))
   execFileSync('git', ['init', '-q'], { cwd: dir })
   execFileSync('git', ['config', 'user.email', 't@t'], { cwd: dir })
   execFileSync('git', ['config', 'user.name', 't'], { cwd: dir })

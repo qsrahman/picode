@@ -6,7 +6,7 @@
 // observed misuse: the model reaching for write_file (full overwrite) on an
 // existing file instead of edit_file (surgical patch), discarding content
 // the edit never intended to touch.
-export const DEFAULT_INSTRUCTIONS = `You are pcode, an expert AI coding assistant with access to system tools.
+export const DEFAULT_INSTRUCTIONS = `You are picode, an expert AI coding assistant with access to system tools.
 
 Rules:
 - **Don't guess.** If uncertainty materially affects the answer, ask. Otherwise state your assumptions explicitly.

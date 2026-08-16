@@ -33,7 +33,7 @@ async function main(): Promise<void> {
   }
 
   if (args.version) {
-    process.stdout.write(`pcode ${VERSION}\n`)
+    process.stdout.write(`picode ${VERSION}\n`)
     return
   }
   if (args.help) {
@@ -57,7 +57,7 @@ async function main(): Promise<void> {
     const palette = createPalette(shouldUseColor(args))
     process.stderr.write(
       `error: no API key found (${config.apiKeyEnv} is not set)\n\n` +
-        `${palette.tip('Tip:')} export ${config.apiKeyEnv}=<your key> to use pcode.\n`,
+        `${palette.tip('Tip:')} export ${config.apiKeyEnv}=<your key> to use picode.\n`,
     )
     process.exit(1)
   }
@@ -109,11 +109,11 @@ async function main(): Promise<void> {
     })
     if (args.noStream && result.text) process.stdout.write(`${result.text}\n`)
     if (result.truncated) {
-      process.stderr.write(`pcode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
+      process.stderr.write(`picode: tool call limit reached (${MAX_TOOL_ROUNDS} rounds)\n`)
       process.exitCode = 3
     }
     if (result.incomplete) {
-      process.stderr.write('pcode: response incomplete — output may be truncated\n')
+      process.stderr.write('picode: response incomplete — output may be truncated\n')
     }
     if (denied) process.exitCode = 2
     return
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
     provider,
     config,
     palette,
-    historyFile: join(process.cwd(), '.pcode', 'history'),
+    historyFile: join(process.cwd(), '.picode', 'history'),
     args,
     registry,
     tools,

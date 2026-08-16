@@ -1,11 +1,11 @@
-# pcode
+# picode
 
 A model-agnostic, CLI-based AI coding agent built on the OpenAI Responses API.
 Interacts with you one-shot or in a REPL, runs local tools (files, shell, git),
 streams output, and integrates MCP servers — all behind a declarative
 permission system.
 
-> **Status:** Phases 0–4 are done. Today `pcode` holds one-shot and REPL
+> **Status:** Phases 0–4 are done. Today `picode` holds one-shot and REPL
 > conversations, streams output, and runs a full local tool suite — file
 > read/write/edit/list/stat, a `run_command` shell, read-only git, and web
 > search/fetch — behind a declarative `allow`/`ask`/`deny` permission engine
@@ -23,14 +23,14 @@ permission system.
 ```sh
 pnpm install
 pnpm start            # run the CLI from this repo
-pnpm link             # optional: exposes the global `pcode` command
+pnpm link             # optional: exposes the global `picode` command
 ```
 
 ## Usage
 
 ```sh
-pcode "explain this repo"     # one-shot
-pcode                         # interactive REPL
+picode "explain this repo"     # one-shot
+picode                         # interactive REPL
 ```
 
 The model is selected with `--model` or the config file.
@@ -121,8 +121,8 @@ engine:
 Config is merged in this order (later wins):
 
 1. Built-in defaults
-2. `~/.config/pcode/config.json` (user-level)
-3. `./pcode.json` (project-level, checked in to share with your team)
+2. `~/.config/picode/config.json` (user-level)
+3. `./picode.json` (project-level, checked in to share with your team)
 4. CLI flags
 5. Environment: `OPENAI_BASE_URL` overrides `baseURL`; `OPENAI_DEFAULT_MODEL` overrides `model` (CLI flags still win); the API key is read from `apiKeyEnv` (default `OPENAI_API_KEY`)
 
@@ -132,7 +132,7 @@ Config is merged in this order (later wins):
   "baseURL": "https://api.openai.com/v1",
   "apiKeyEnv": "OPENAI_API_KEY",
   "braveSearchApiKeyEnv": "BRAVE_SEARCH_API_KEY",
-  "instructions": "You are pcode, a coding agent.", // overrides the built-in default wholesale
+  "instructions": "You are picode, a coding agent.", // overrides the built-in default wholesale
   "root": "/path/to/workspace",        // default: current directory
   "additionalDirs": ["../sibling"],
   "mode": "interactive",               // interactive | auto | plan
@@ -168,7 +168,7 @@ explicit `--model` flag beats `OPENAI_DEFAULT_MODEL`.
 
 ## Permission model
 
-`pcode` gates every tool call through a rule engine with `allow` / `ask` /
+`picode` gates every tool call through a rule engine with `allow` / `ask` /
 `deny` buckets, evaluated **deny > ask > allow**. Rules use `Tool(pattern)`
 syntax (`Bash(pnpm test *)`, `Edit(src/**)`, `Read(.env)`,
 `WebSearch(*)`, `WebFetch(https://internal.corp/**)`) — `web_search` and
@@ -235,7 +235,7 @@ pnpm format:check    # prettier --check (gates CI)
 ```
 
 `pnpm test:live` (`scripts/live-e2e.py`) drives the real CLI against the
-configured model (`.env` key + `pcode.json` model/base URL) and asserts the
+configured model (`.env` key + `picode.json` model/base URL) and asserts the
 CLI output — tool status lines, streamed text, and permission prompts — stays
 clean (no clobbering) and that exit codes track policy. It runs model-dependent
 REPL flows under a pseudo-terminal via `script`; use `--quick` to skip them and

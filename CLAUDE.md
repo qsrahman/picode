@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`pcode` — a model-agnostic, CLI-based AI coding agent built on the OpenAI
+`picode` — a model-agnostic, CLI-based AI coding agent built on the OpenAI
 Responses API. See [`README.md`](./README.md) for usage/config and
 [`PLAN.md`](./PLAN.md) for the phased roadmap (source of truth for planning).
 
@@ -34,7 +34,7 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm format` before committing.
 ## Architecture
 
 Request flow: `src/index.ts` parses CLI args (`cli/args.ts`), resolves config
-(`config/config.ts`, defaults → user config → project `pcode.json` → CLI flags
+(`config/config.ts`, defaults → user config → project `picode.json` → CLI flags
 → env), builds a `Provider` (`agent/provider.ts`, wraps the OpenAI SDK) and a
 `ToolRegistry` (`tools/registry.ts`) with shell/fs/git tools registered, then
 dispatches to either a one-shot `runTurn` call or the interactive REPL

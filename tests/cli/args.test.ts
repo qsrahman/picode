@@ -34,7 +34,7 @@ describe('parseCli', () => {
   })
 
   it('supports --flag=value syntax', () => {
-    expect(parseCli(['--config=./pcode.json']).config).toBe('./pcode.json')
+    expect(parseCli(['--config=./picode.json']).config).toBe('./picode.json')
   })
 
   it('resolves --mode auto from --yes', () => {

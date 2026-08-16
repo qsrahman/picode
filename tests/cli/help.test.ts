@@ -16,7 +16,7 @@ const flags = [
 
 describe('HELP_TEXT', () => {
   it('shows the usage line', () => {
-    expect(HELP_TEXT).toContain('pcode [prompt]')
+    expect(HELP_TEXT).toContain('picode [prompt]')
   })
 
   it('documents every supported flag', () => {

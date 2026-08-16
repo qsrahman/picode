@@ -13,7 +13,7 @@ let userPath: string
 let projectPath: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'pcode-config-'))
+  dir = mkdtempSync(join(tmpdir(), 'picode-config-'))
   userPath = join(dir, 'user.json')
   projectPath = join(dir, 'project.json')
 })

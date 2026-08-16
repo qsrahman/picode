@@ -19,9 +19,9 @@ describe('parseToolPattern', () => {
     expect(parseToolPattern('Bash(pnpm test)')).toEqual({ kind: 'shell', operand: 'pnpm test' })
     expect(parseToolPattern('Edit(src/a.ts)')).toEqual({ kind: 'edit', operand: 'src/a.ts' })
     expect(parseToolPattern('Read(.env)')).toEqual({ kind: 'read', operand: '.env' })
-    expect(parseToolPattern('WebSearch(pcode agent)')).toEqual({
+    expect(parseToolPattern('WebSearch(picode agent)')).toEqual({
       kind: 'webSearch',
-      operand: 'pcode agent',
+      operand: 'picode agent',
     })
     expect(parseToolPattern('WebFetch(https://example.com)')).toEqual({
       kind: 'webFetch',

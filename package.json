@@ -1,5 +1,5 @@
 {
-  "name": "pcode",
+  "name": "picode",
   "version": "0.4.0",
   "description": "Model-agnostic AI coding agent built on the OpenAI Responses API",
   "type": "module",
@@ -8,7 +8,7 @@
     "node": ">=26.0.0"
   },
   "bin": {
-    "pcode": "src/index.ts"
+    "picode": "src/index.ts"
   },
   "files": [
     "src"

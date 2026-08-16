@@ -271,7 +271,7 @@ export async function runRepl(opts: ReplOptions): Promise<void> {
 
   if (isTerminal) {
     process.stdout.write(
-      `${palette.tool('pcode')} · ${provider.model} · ${config.mode}\n${palette.promptMuted('type /help for commands')}\n\n`,
+      `${palette.tool('picode')} · ${provider.model} · ${config.mode}\n${palette.promptMuted('type /help for commands')}\n\n`,
     )
   }
 

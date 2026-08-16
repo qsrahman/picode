@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `pcode` are documented in this file. Format follows
+All notable changes to `picode` are documented in this file. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/) (pre-1.0: minor bumps track
 completed [`PLAN.md`](./PLAN.md) phases, patch bumps are fixes/polish within a
@@ -81,7 +81,7 @@ phase).
 
 - Project scaffold: `package.json`, TypeScript config, Prettier, Vitest.
 - CLI argument parsing, layered config resolution (defaults → user config →
-  project `pcode.json` → CLI flags → env), and plain (non-tool) chat via the
+  project `picode.json` → CLI flags → env), and plain (non-tool) chat via the
   OpenAI Responses API.
 - REPL with `/help`, `/clear`, `/reset` commands and a two-line prompt.
 - `.env` support for `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and

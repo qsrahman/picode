@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { createFsTools } from '../../src/tools/fs.ts'
 
 async function tmp(): Promise<string> {
-  return mkdtemp(join(tmpdir(), 'pcode-fs-'))
+  return mkdtemp(join(tmpdir(), 'picode-fs-'))
 }
 
 describe('fs tools', () => {

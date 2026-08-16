@@ -1,4 +1,4 @@
-# pcode — Project Plan & Product Requirements Document
+# picode — Project Plan & Product Requirements Document
 
 > **Status legend**
 > - `[ ]` pending
@@ -13,7 +13,7 @@
 
 ## 1. Product vision
 
-`pcode` is a **model-agnostic, CLI-based AI coding agent** built on the
+`picode` is a **model-agnostic, CLI-based AI coding agent** built on the
 OpenAI Responses API. It interacts with the user (one-shot and REPL), runs
 local system tools (file operations, shell commands, git), streams output,
 supports configurable models, and integrates MCP servers — all behind a
@@ -26,7 +26,7 @@ commit**.
 
 ### In scope
 
-- Interactive REPL and one-shot (`pcode "query"`) modes
+- Interactive REPL and one-shot (`picode "query"`) modes
 - Configurable models via the OpenAI Responses SDK (any model string)
 - Streaming model output and tool-call status
 - Built-in tools: file read/write/list, shell, read-only git
@@ -153,9 +153,9 @@ runTurn (Phase 2+, streaming):
 }
 ```
 
-Merge order: `defaults ← ~/.config/pcode/config.json ← ./pcode.json ← CLI
-flags`. Resolution: `--config <path>` → `./pcode.json` →
-`~/.config/pcode/config.json`. The environment layers on top of config files
+Merge order: `defaults ← ~/.config/picode/config.json ← ./picode.json ← CLI
+flags`. Resolution: `--config <path>` → `./picode.json` →
+`~/.config/picode/config.json`. The environment layers on top of config files
 but below CLI flags: the API key is read from `apiKeyEnv` (default
 `OPENAI_API_KEY`), `OPENAI_BASE_URL` overrides `baseURL`, and
 `OPENAI_DEFAULT_MODEL` overrides `model`. The `pnpm start` / `pnpm dev`
@@ -165,7 +165,7 @@ existing variables win).
 ### CLI surface
 
 ```
-pcode [prompt]            one-shot when a prompt is given, REPL otherwise
+picode [prompt]            one-shot when a prompt is given, REPL otherwise
   --model <id>       --mode <interactive|auto|plan>   --yes (=auto)   --plan (=plan)
   --config <path>    --no-stream   --verbose   --no-color   --version   --help
 ```
@@ -296,7 +296,7 @@ conversation.
 **Goal:** working toolchain (Node 26 type stripping, Vitest, Prettier) and
 authoritative project docs.
 
-- [x] `package.json`: ESM, `bin: { pcode: "src/index.ts" }`, `engines.node >= 26`, scripts
+- [x] `package.json`: ESM, `bin: { picode: "src/index.ts" }`, `engines.node >= 26`, scripts
 - [x] `tsconfig.json`: `erasableSyntaxOnly`, `allowImportingTsExtensions`,
       `verbatimModuleSyntax`, `module: nodenext`, `noEmit`, `strict`
 - [x] `.prettierrc` / `.prettierignore` (`*.md` excluded) / `.gitignore`
@@ -315,7 +315,7 @@ authoritative project docs.
 
 ### Phase 1 — CLI parsing, config, plain chat 🟢 done
 
-**Goal:** `pcode` holds a tool-free conversation with a configurable model —
+**Goal:** `picode` holds a tool-free conversation with a configurable model —
 one-shot and interactive REPL.
 
 - [x] `cli/args.ts`: `node:util.parseArgs`; all flags + positionals
@@ -336,7 +336,7 @@ one-shot and interactive REPL.
   tests passing
 - **Docs:** updated this file + `README.md` (CLI usage); `AGENTS.md`
   unchanged (module map and conventions already matched)
-- **Acceptance:** `pcode "hi"` prints a model reply; REPL supports multi-turn
+- **Acceptance:** `picode "hi"` prints a model reply; REPL supports multi-turn
   conversation; flags override config; `--version`/`--help` correct. Verified
   end-to-end against a local mock of the Responses API.
 - **Commit:** `feat: Phase 1 — CLI parsing, config, plain chat`

@@ -7,7 +7,7 @@ import { HISTORY_SIZE, loadHistory, saveHistory } from '../../src/cli/history.ts
 
 describe('history', () => {
   it('round-trips entries via save and load', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'history')
     const entries = ['first', 'second', 'third']
 
@@ -18,7 +18,7 @@ describe('history', () => {
   })
 
   it('returns empty array for missing file', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'nonexistent', 'history')
 
     const loaded = loadHistory(path)
@@ -27,7 +27,7 @@ describe('history', () => {
   })
 
   it('filters out empty lines', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'history')
     saveHistory(path, ['a', '', 'b', '', 'c'])
 
@@ -37,7 +37,7 @@ describe('history', () => {
   })
 
   it('caps entries at HISTORY_SIZE', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'history')
     const entries = Array.from({ length: HISTORY_SIZE + 100 }, (_, i) => `line-${i}`)
 
@@ -50,7 +50,7 @@ describe('history', () => {
   })
 
   it('creates parent directories on save', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'a', 'b', 'c', 'history')
 
     saveHistory(path, ['entry'])
@@ -60,7 +60,7 @@ describe('history', () => {
   })
 
   it('writes an empty file for empty entries', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'pcode-test-'))
+    const dir = mkdtempSync(join(tmpdir(), 'picode-test-'))
     const path = join(dir, 'history')
 
     saveHistory(path, [])

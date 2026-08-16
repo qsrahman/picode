@@ -12,7 +12,7 @@ import {
 import { ToolRegistry } from '../../src/tools/registry.ts'
 
 function makeTool(timeout = 5000) {
-  const cwd = mkdtempSync(join(tmpdir(), 'pcode-shell-'))
+  const cwd = mkdtempSync(join(tmpdir(), 'picode-shell-'))
   return createShellTool({ cwd, timeout })
 }
 

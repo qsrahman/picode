@@ -2,7 +2,7 @@ node_modules/
 *.tsbuildinfo
 dist/
 coverage/
-.pcode/
+.picode/
 .live/
 .env
 .DS_Store

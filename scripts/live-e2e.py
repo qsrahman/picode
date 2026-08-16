@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""End-to-end live test for pcode.
+"""End-to-end live test for picode.
 
-Drives the real CLI against a live model (config from `pcode.json`, key from
+Drives the real CLI against a live model (config from `picode.json`, key from
 `.env`) and asserts the CLI output/aesthetics hold together: tool status lines,
 LLM streaming, and permission prompts don't clobber each other, and exit codes
 track policy decisions.
@@ -156,7 +156,7 @@ def non_tty() -> None:
     banner("Non-TTY: version, help, one-shot, piped REPL")
 
     rc, out, err = run(["node", "--env-file=.env", "src/index.ts", "--version"])
-    check("version", rc == 0 and re.search(r"pcode \d+\.\d+\.\d+", out), f"rc={rc} out={out!r}")
+    check("version", rc == 0 and re.search(r"picode \d+\.\d+\.\d+", out), f"rc={rc} out={out!r}")
 
     rc, out, err = run(["node", "--env-file=.env", "src/index.ts", "--help"])
     check(
@@ -171,7 +171,7 @@ def non_tty() -> None:
     # One-shot, auto, streamed tool use — exit 0, no cursor/ANSI in a pipe.
     rc, out, err = run_oneshot("Use the list_dir tool to list the current directory.", "--no-color", "--yes")
     check("one-shot auto tool use", rc == 0, f"rc={rc}")
-    check("one-shot lists repo files", "pcode.json" in out, out[:200])
+    check("one-shot lists repo files", "picode.json" in out, out[:200])
     check("one-shot pipe has no ANSI", "\x1b[" not in out, repr(out[:80]))
     check("one-shot pipe has no CR", "\r" not in out)
 
@@ -191,7 +191,7 @@ def non_tty() -> None:
 
     # --no-stream one-shot — single buffered block.
     rc, out, err = run_oneshot("Use the list_dir tool to list the current directory.", "--no-color", "--yes", "--no-stream")
-    check("no-stream one-shot", rc == 0 and "pcode.json" in out, f"rc={rc}")
+    check("no-stream one-shot", rc == 0 and "picode.json" in out, f"rc={rc}")
 
     # Plan-mode one-shot deny — tool hidden, exit 2.
     rc, out, err = run_oneshot("Use the run_command tool to run the exact shell command: date", "--no-color", "--plan")
@@ -206,7 +206,7 @@ def pty_flows() -> None:
 
     # Allow path
     s = Pty()
-    check("banner", s.wait_for("pcode · gemma4:cloud · interactive", 8))
+    check("banner", s.wait_for("picode · gemma4:cloud · interactive", 8))
     check("prompt", s.wait_for("Ask anything, /help for commands", 8))
     s.send("Use the list_dir tool to list the current directory.")
     check("running status", s.wait_for("› list_dir: . 0.0s", 120))

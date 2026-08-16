@@ -165,7 +165,7 @@ export function createWebTools(ctx: WebToolContext): Tool[] {
           response = await fetch(url, {
             redirect: 'follow',
             signal: AbortSignal.timeout(ctx.timeoutMs),
-            headers: { 'User-Agent': `pcode/${VERSION} (+web_fetch tool)` },
+            headers: { 'User-Agent': `picode/${VERSION} (+web_fetch tool)` },
           })
         } catch (err) {
           return `web_fetch failed: ${messageOf(err)}`
