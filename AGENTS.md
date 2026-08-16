@@ -34,8 +34,9 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm format` before committing.
 - Use `import type` for type-only imports (`verbatimModuleSyntax` is on).
 - `erasableSyntaxOnly` is on: no enums, namespaces, or parameter properties.
 - Runtime deps: `zod`, `ansis`, `openai`, `@modelcontextprotocol/sdk`
-  (added in Phase 5). `web_search`/`web_fetch` (Phase 4) use Node's built-in
-  `fetch` — no HTTP client dependency.
+  (added in Phase 6). `web_search`/`web_fetch` (Phase 4) use Node's built-in
+  `fetch` — no HTTP client dependency. `run_agent` (Phase 5) adds no
+  dependency either — it reuses `agent/agent.ts`'s `runTurn` directly.
 
 ## Conventions
 
@@ -63,13 +64,13 @@ src/
   config/           zod schema + load/merge/validate
   agent/            provider (OpenAI impl) + agent loop + default system prompt
   tools/            Tool interface, zod→JSON schema, registry, shell, fs, git,
-                    web (search/fetch) + netGuard (SSRF guard)
+                    web (search/fetch) + netGuard (SSRF guard), agent (run_agent)
   utils/            palette + streaming/status writer
 tests/              mirrors src/ 1:1
 ```
 
 > The following modules are planned (see PLAN.md), not yet present:
-> `mcp/` client + adapter (Phase 5).
+> `mcp/` client + adapter (Phase 6).
 
 > Phase 3 is done: `tools/fs.ts` + `tools/git.ts`, and the `permissions/`
 > engine (`rules.ts`, `modes.ts`, `readonly.ts`, `breaker.ts`, `policy.ts`,
@@ -79,6 +80,11 @@ tests/              mirrors src/ 1:1
 > `tools/netGuard.ts` (SSRF guard), and the permission engine's separate
 > `webSearch`/`webFetch` categories (`WebSearch(pattern)`/`WebFetch(pattern)`,
 > default `ask`) are implemented.
+
+> Phase 5 is done: `tools/agent.ts` (`run_agent`) — a headless, one-level-deep
+> sub-agent that reuses `agent/agent.ts`'s `runTurn` — and the permission
+> engine's `agent` category (`Agent(pattern)`, default `ask`, denied outright
+> in `plan` mode) are implemented.
 
 ## Testing
 

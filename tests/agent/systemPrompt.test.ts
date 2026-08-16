@@ -16,6 +16,7 @@ describe('DEFAULT_INSTRUCTIONS', () => {
       'git_show',
       'web_search',
       'web_fetch',
+      'run_agent',
     ]
     for (const tool of tools) {
       expect(DEFAULT_INSTRUCTIONS).toContain(tool)
@@ -27,5 +28,10 @@ describe('DEFAULT_INSTRUCTIONS', () => {
     expect(DEFAULT_INSTRUCTIONS.toLowerCase()).toContain(
       "discards everything the edit didn't intend to touch",
     )
+  })
+
+  it('tells the model run_agent cannot ask for approval or spawn further sub-agents', () => {
+    expect(DEFAULT_INSTRUCTIONS).toContain('run_agent')
+    expect(DEFAULT_INSTRUCTIONS.toLowerCase()).toContain('spawn further sub-agents')
   })
 })

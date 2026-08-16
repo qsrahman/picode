@@ -15,6 +15,7 @@ import type { ToolCall } from './tools/types.ts'
 import { createFsTools } from './tools/fs.ts'
 import { createGitTools } from './tools/git.ts'
 import { createWebTools } from './tools/web.ts'
+import { createAgentTool } from './tools/agent.ts'
 import { ApprovalCache, toolsetForModel } from './permissions/policy.ts'
 import { createAuthorizer } from './permissions/prompt.ts'
 import { createPalette, shouldUseColor } from './utils/palette.ts'
@@ -65,6 +66,11 @@ async function main(): Promise<void> {
   const provider = createProvider(config, apiKey)
   const palette = createPalette(shouldUseColor(args))
 
+  // Constructed once, up front: run_agent needs the same instance the
+  // interactive authorizer (below) uses, so a prior "always allow" answer
+  // also covers matching calls made by a sub-agent.
+  const approvals = new ApprovalCache()
+
   const registry = new ToolRegistry()
   registry.register(createShellTool({ cwd: config.root, timeout: config.toolTimeout }))
   for (const tool of createFsTools({ root: config.root, additionalDirs: config.additionalDirs })) {
@@ -79,12 +85,12 @@ async function main(): Promise<void> {
   })) {
     registry.register(tool)
   }
+  registry.register(createAgentTool({ provider, registry, config, approvals }))
   const tools = toolsetForModel(registry, config.permission, config.mode)
 
   if (args.prompt) {
     // One-shot is non-interactive: the engine resolves `ask` decisions to a
     // denial (no prompt), while `allow`/`deny` follow the rules and mode.
-    const approvals = new ApprovalCache()
     const base = createAuthorizer({
       rules: config.permission,
       mode: config.mode,
@@ -127,6 +133,7 @@ async function main(): Promise<void> {
     args,
     registry,
     tools,
+    approvals,
   })
 }
 

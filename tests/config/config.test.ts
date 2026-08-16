@@ -190,6 +190,7 @@ describe('resolveConfig', () => {
       read: { allow: [], ask: [], deny: [] },
       webSearch: { allow: [], ask: [], deny: [] },
       webFetch: { allow: [], ask: [], deny: [] },
+      agent: { allow: [], ask: [], deny: [] },
     })
   })
 
@@ -237,6 +238,18 @@ describe('resolveConfig', () => {
     expect(config.permission.webFetch.allow).toEqual([])
     expect(config.permission.webSearch).toEqual({ allow: [], ask: [], deny: [] })
     expect(config.permission.shell).toEqual({ allow: [], ask: [], deny: [] })
+  })
+
+  it('merges a partial agent rule list without wiping the others', () => {
+    writeFileSync(projectPath, JSON.stringify({ permission: { agent: { allow: ['Agent(*)'] } } }))
+    const config = resolveConfig(
+      {},
+      { cwd: dir, userConfigPath: userPath, projectConfigPath: projectPath },
+    )
+    expect(config.permission.agent.allow).toEqual(['Agent(*)'])
+    expect(config.permission.agent.ask).toEqual([])
+    expect(config.permission.agent.deny).toEqual([])
+    expect(config.permission.edit).toEqual({ allow: [], ask: [], deny: [] })
   })
 
   it('defaults braveSearchApiKeyEnv and lets it be overridden by a project config', () => {

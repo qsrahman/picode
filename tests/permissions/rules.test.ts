@@ -15,7 +15,7 @@ function withRules(rules: Partial<Permission>): Permission {
 }
 
 describe('parseToolPattern', () => {
-  it('parses the five configured categories', () => {
+  it('parses the six configured categories', () => {
     expect(parseToolPattern('Bash(pnpm test)')).toEqual({ kind: 'shell', operand: 'pnpm test' })
     expect(parseToolPattern('Edit(src/a.ts)')).toEqual({ kind: 'edit', operand: 'src/a.ts' })
     expect(parseToolPattern('Read(.env)')).toEqual({ kind: 'read', operand: '.env' })
@@ -26,6 +26,10 @@ describe('parseToolPattern', () => {
     expect(parseToolPattern('WebFetch(https://example.com)')).toEqual({
       kind: 'webFetch',
       operand: 'https://example.com',
+    })
+    expect(parseToolPattern('Agent(fix the tests)')).toEqual({
+      kind: 'agent',
+      operand: 'fix the tests',
     })
   })
 
