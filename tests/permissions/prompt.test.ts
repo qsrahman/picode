@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { defaultPermission } from '../../src/config/schema.ts'
 import type { ToolCall } from '../../src/tools/types.ts'
 import { ApprovalCache } from '../../src/permissions/policy.ts'
-import { createAuthorizer, promptForDecision } from '../../src/permissions/prompt.ts'
+import { createAuthorizer, promptForDecision, summaryOf } from '../../src/permissions/prompt.ts'
 
 function call(name: string, args: Record<string, unknown>): ToolCall {
   return { callId: 'c1', name, args }
@@ -20,6 +20,37 @@ function fakeIo(answers: string[]) {
     },
   }
 }
+
+describe('summaryOf', () => {
+  it('labels shell commands, truncating past 80 chars unless verbose', () => {
+    const short = call('run_command', { command: 'pnpm test' })
+    expect(summaryOf(short, false)).toBe('shell: pnpm test')
+    const long = call('run_command', { command: 'x'.repeat(100) })
+    expect(summaryOf(long, false)).toBe(`shell: ${'x'.repeat(80)}…`)
+    expect(summaryOf(long, true)).toBe(`shell: ${'x'.repeat(100)}`)
+  })
+
+  it('labels web and fs tools by their operand', () => {
+    expect(summaryOf(call('web_search', { query: 'lisp history' }), false)).toBe(
+      'web_search: lisp history',
+    )
+    expect(summaryOf(call('web_fetch', { url: 'https://example.com' }), false)).toBe(
+      'web_fetch: https://example.com',
+    )
+    expect(summaryOf(call('edit_file', { path: 'src/index.ts' }), false)).toBe(
+      'edit_file: src/index.ts',
+    )
+    expect(summaryOf(call('read_file', { path: 'tests/x.test.ts' }), false)).toBe(
+      'read_file: tests/x.test.ts',
+    )
+    expect(summaryOf(call('list_dir', { path: '.' }), false)).toBe('list_dir: .')
+    expect(summaryOf(call('stat', { path: 'src' }), false)).toBe('stat: src')
+  })
+
+  it('falls back to JSON args for unknown tools', () => {
+    expect(summaryOf(call('todo_add', { text: 'hi' }), false)).toBe('todo_add({"text":"hi"})')
+  })
+})
 
 describe('createAuthorizer', () => {
   it('allows/denies without prompting and only prompts on ask', async () => {
